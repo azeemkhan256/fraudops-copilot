@@ -16,17 +16,18 @@ APP_URL="${FRAUD_APP_URL:-http://127.0.0.1:8000}"
 APP_URL="${APP_URL%/}"
 echo "[n8n] FraudOps app: $APP_URL"
 
-# Editor login. Without both variables the editor stays locked (webhooks still work).
+# Optional extra login in front of the editor. With both variables set, the browser asks for them;
+# without them the editor is open to anyone with the link (n8n's own owner account still applies).
 if [ -n "${N8N_EDITOR_USER:-}" ] && [ -n "${N8N_EDITOR_PASSWORD:-}" ]; then
   printf '%s:%s\n' "$N8N_EDITOR_USER" "$(openssl passwd -apr1 "$N8N_EDITOR_PASSWORD")" > /tmp/nginx/htpasswd
   echo "[n8n] editor login enabled for user '$N8N_EDITOR_USER'"
+  sed "s#__PORT__#$PORT#" nginx.conf > /tmp/nginx/nginx.conf
 else
-  printf 'locked:%s\n' "$(openssl passwd -apr1 "$(openssl rand -hex 24)")" > /tmp/nginx/htpasswd
-  echo "[n8n] editor LOCKED - set N8N_EDITOR_USER and N8N_EDITOR_PASSWORD to open it"
+  echo "[n8n] editor open - no extra login (set N8N_EDITOR_USER and N8N_EDITOR_PASSWORD to add one)"
+  sed -e "s#__PORT__#$PORT#" -e '/auth_basic/d' nginx.conf > /tmp/nginx/nginx.conf
 fi
 
 # nginx first, so the host sees the port open while n8n prepares
-sed "s#__PORT__#$PORT#" nginx.conf > /tmp/nginx/nginx.conf
 nginx -e stderr -c /tmp/nginx/nginx.conf -g 'daemon off;' &
 
 mkdir -p /tmp/workflows
