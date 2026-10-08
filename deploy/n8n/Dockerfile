@@ -13,7 +13,11 @@ RUN npm install -g n8n@2 --no-audit --no-fund && npm cache clean --force
 # uid 1000 = "node" user in this image
 USER node
 ENV HOME=/home/node \
-    NODE_OPTIONS=--max-old-space-size=384 \
+    NODE_OPTIONS=--max-old-space-size=256 \
+    N8N_RUNNERS_MAX_OLD_SPACE_SIZE=64 \
+    N8N_COMMUNITY_PACKAGES_ENABLED=false \
+    EXECUTIONS_DATA_PRUNE=true \
+    EXECUTIONS_DATA_MAX_AGE=24 \
     N8N_USER_FOLDER=/home/node/n8n-data \
     N8N_LISTEN_ADDRESS=127.0.0.1 \
     N8N_PORT=5678 \
