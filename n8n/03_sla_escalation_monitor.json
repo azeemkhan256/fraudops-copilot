@@ -1,0 +1,220 @@
+{
+  "id": "SlaMonitor000003",
+  "name": "SLA Escalation Monitor",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "b61bbea5-abd1-482f-910d-0f10db1c3cac",
+      "name": "Every 5 minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "10803e4f-80e1-4e66-baad-eea6032165c1",
+      "name": "Run now (manual test)",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cac8e2ee-b5be-4c3a-acde-63b52f08f274",
+              "name": "api_base",
+              "value": "http://127.0.0.1:8000",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "87cbbb17-2af6-4d0b-89bb-982455b7655f",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.api_base }}/cases/sla/check?minutes=15",
+        "options": {
+          "timeout": 900000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({}) }}"
+      },
+      "id": "d4b2398e-b6a2-46d5-a961-af962e6fa684",
+      "name": "Check SLA Breaches",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "012f3d99-501a-44d6-aed9-eb296597d167",
+              "leftValue": "={{ $json.breaches > 0 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "8cd9a087-e524-400a-882a-b71f9f0ac70a",
+      "name": "Any breaches?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "34020189-eb48-4fde-9cc4-3d11a5ae5e8d",
+              "name": "summary",
+              "value": "={{ $json.breaches + ' case(s) escalated to fraud operations head' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "ed5d001c-de5f-4ca2-bd79-3fc2dc1752f0",
+      "name": "Breaches Escalated",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        880,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## [E] SLA escalation monitor\nEscalated or pending cases not decided within 15 minutes are re-escalated to the fraud operations head (time-critical: funds can leave the bank within minutes).",
+        "height": 160,
+        "width": 560,
+        "color": 3
+      },
+      "id": "14f807c9-5234-4273-acc8-dedfc726e97f",
+      "name": "Note 60765a",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -20,
+        40
+      ]
+    }
+  ],
+  "connections": {
+    "Every 5 minutes": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run now (manual test)": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Check SLA Breaches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check SLA Breaches": {
+      "main": [
+        [
+          {
+            "node": "Any breaches?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Any breaches?": {
+      "main": [
+        [
+          {
+            "node": "Breaches Escalated",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "tags": []
+}

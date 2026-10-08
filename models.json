@@ -1,0 +1,21 @@
+{
+  "_comment": "Model line-up. provider: gemini | cerebras | mistral | nvidia | openrouter | groq | together | ollama | mock. 'benchmark': true = default comparison set (open-weight only). 'reference': true = closed model, optional comparison point, never counted as one of the open models. 'extra' = provider-specific request fields; unsupported ones are dropped automatically. Google retired Gemma 3 from the Gemini API in 2026; only the two Gemma 4 models remain there (Gemma 3 still runs locally via Ollama). Check which models your keys can reach with: python -m app.check_models",
+  "models": [
+    {"label": "gemma-4-31b", "provider": "gemini", "model": "gemma-4-31b-it", "family": "Google Gemma 4 31B (open-weight) via Google AI Studio", "benchmark": true, "max_tokens": 4096, "extra": {"thinkingConfig": {"thinkingLevel": "minimal"}}},
+    {"label": "gpt-oss-120b", "provider": "cerebras", "model": "gpt-oss-120b", "family": "OpenAI gpt-oss 120B (open-weight, Apache-2.0) via Cerebras", "benchmark": true, "max_tokens": 4096, "extra": {"reasoning_effort": "low"}, "fast": true},
+    {"label": "qwen-3.8-27b", "provider": "cerebras", "model": "qwen-3.8-27b", "family": "Alibaba Qwen 3.8 27B (open-weight) via Cerebras", "benchmark": true, "max_tokens": 4096, "fast": true},
+    {"label": "gemma-4-26b-a4b", "provider": "gemini", "model": "gemma-4-26b-a4b-it", "family": "Google Gemma 4 26B-A4B mixture-of-experts (open-weight, fastest Gemma) via Google AI Studio", "max_tokens": 4096, "extra": {"thinkingConfig": {"thinkingLevel": "minimal"}}, "fast": true},
+    {"label": "mistral-small", "provider": "mistral", "model": "mistral-small-latest", "family": "Mistral Small (open-weight) via Mistral La Plateforme free tier", "max_tokens": 2048},
+    {"label": "nvidia-llama-3.3-70b", "provider": "nvidia", "model": "meta/llama-3.3-70b-instruct", "family": "Meta Llama 3.3 70B (open-weight) via NVIDIA NIM", "max_tokens": 2048},
+    {"label": "openrouter-llama-3.3-70b", "provider": "openrouter", "model": "meta-llama/llama-3.3-70b-instruct:free", "family": "Meta Llama 3.3 70B (open-weight) via OpenRouter free (50 requests/day)", "max_tokens": 2048},
+    {"label": "gemini-flash", "provider": "gemini", "model": "gemini-3.8-flash", "family": "Google Gemini Flash (CLOSED model, optional reference only)", "reference": true, "max_tokens": 4096},
+    {"label": "groq-llama-3.1-8b", "provider": "groq", "model": "llama-3.1-8b-instant", "family": "Meta Llama 3.1 8B (open-weight) via Groq"},
+    {"label": "groq-gpt-oss-20b", "provider": "groq", "model": "openai/gpt-oss-20b", "family": "OpenAI gpt-oss 20B (open-weight) via Groq", "extra": {"reasoning_effort": "low"}},
+    {"label": "groq-qwen3-27b", "provider": "groq", "model": "qwen/qwen3.8-27b", "family": "Alibaba Qwen 3.x 27B (open-weight) via Groq", "extra": {"reasoning_format": "hidden"}},
+    {"label": "ollama-qwen2.5-7b", "provider": "ollama", "model": "qwen2.5:7b", "family": "Alibaba Qwen 2.5 7B (local via Ollama)"},
+    {"label": "ollama-llama3.1-8b", "provider": "ollama", "model": "llama3.1:8b", "family": "Meta Llama 3.1 8B (local via Ollama)"},
+    {"label": "ollama-mistral-7b", "provider": "ollama", "model": "mistral:7b", "family": "Mistral 7B (local via Ollama)"},
+    {"label": "ollama-gemma3-4b", "provider": "ollama", "model": "gemma3:4b", "family": "Google Gemma 3 4B (local via Ollama)"},
+    {"label": "mock-heuristic", "provider": "mock", "model": "mock", "family": "Offline rule-based stand-in (pipeline testing only - NOT a benchmark model)"}
+  ]
+}

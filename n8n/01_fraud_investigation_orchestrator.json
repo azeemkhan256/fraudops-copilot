@@ -1,0 +1,1009 @@
+{
+  "id": "FraudInvOrch0001",
+  "name": "Fraud Investigation Orchestrator (Agentic AI)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "fraud-investigate",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a85a1aa8-78cc-448b-b65f-0516b7527bd3",
+      "name": "Fraud Alert Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "cd0ce2a7-bce5-4cab-891c-e84145a511f5"
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a5bbe0b2-9d36-4a75-984e-cfae7b9cb7b9",
+              "name": "api_base",
+              "value": "={{ $json.body.api_base || 'http://127.0.0.1:8000' }}",
+              "type": "string"
+            },
+            {
+              "id": "121cf040-368f-472e-90e3-0431ee695450",
+              "name": "alert_id",
+              "value": "={{ $json.body.alert_id }}",
+              "type": "string"
+            },
+            {
+              "id": "951ba70a-2be1-44de-b430-583227da8704",
+              "name": "model",
+              "value": "={{ $json.body.model || 'mock-heuristic' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "5bd77040-99e0-40d8-aae0-00003bd7f748",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.api_base }}/cases/start",
+        "options": {
+          "timeout": 900000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ alert_id: $json.alert_id, model: $json.model, orchestrator: 'n8n' }) }}"
+      },
+      "id": "46a217a9-b949-4ade-bf0f-d3c33e419cc7",
+      "name": "Orchestrator: Open Case",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        300
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.api_base }}/tools/evidence",
+        "options": {
+          "timeout": 900000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ case_id: $('Orchestrator: Open Case').first().json.case_id }) }}"
+      },
+      "id": "555aaa1a-bad8-476e-a2ba-87e50003b813",
+      "name": "Tool: Gather Evidence & Run Rules",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        300
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c3b7a444-9440-4142-a39e-61deaa887c43",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "9ed0c652-c0a5-4c4c-ba01-7ffc9fa014d5",
+      "name": "Evidence complete?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.api_base }}/agents/transaction_analysis",
+        "options": {
+          "timeout": 900000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ case_id: $('Orchestrator: Open Case').first().json.case_id }) }}"
+      },
+      "id": "da7cf234-b62a-4d00-b957-a0565024ba8d",
+      "name": "Agent 1: Transaction Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        300
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "3d84c62b-1a39-4718-b585-ec0a2eec3f5c",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "a12a90fe-6adb-4a34-ba08-13ed7c6b4c67",
+      "name": "Agent 1 valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1320,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.api_base }}/agents/customer_behaviour",
+        "options": {
+          "timeout": 900000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ case_id: $('Orchestrator: Open Case').first().json.case_id }) }}"
+      },
+      "id": "5d72c1d8-8816-4a31-b6e8-cb12e5c4cf5a",
+      "name": "Agent 2: Customer Behaviour",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        300
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ff1015f2-6341-4b81-aeed-4a2957047cf1",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "069f6034-1cc6-4722-8748-00d546b09e80",
+      "name": "Agent 2 valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1760,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.api_base }}/agents/risk_policy",
+        "options": {
+          "timeout": 900000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ case_id: $('Orchestrator: Open Case').first().json.case_id }) }}"
+      },
+      "id": "4e599f31-720c-477c-b81a-86940da05ec9",
+      "name": "Agent 3: Risk & Policy",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1980,
+        300
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b93a808f-3b79-4e23-a195-09bb2fd59ce9",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "c9712691-b02c-4a69-98e5-9a087636d968",
+      "name": "Agent 3 valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.api_base }}/agents/recommendation",
+        "options": {
+          "timeout": 900000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ case_id: $('Orchestrator: Open Case').first().json.case_id }) }}"
+      },
+      "id": "c773c346-bc66-493e-8046-c14722eeb7eb",
+      "name": "Agent 4: Recommendation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2420,
+        300
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.api_base }}/guardrails/route",
+        "options": {
+          "timeout": 900000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ case_id: $('Orchestrator: Open Case').first().json.case_id }) }}"
+      },
+      "id": "f648264c-71c7-49ca-9101-34a778523792",
+      "name": "Guardrails: Routing Policy",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2640,
+        300
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "eafd9321-2115-4749-84b1-25a874fa1bf9",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "A",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "A - Autonomous close"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "af20db18-53ec-4136-9ce1-5cd507d5cb74",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "H",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "H - Human review"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "169e45a0-95cb-4b1d-ad82-faf70d898d4d",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "E",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "E - Escalate"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "e89e32f2-3ff2-4497-a8c4-def0f9ebe6f1",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "X",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "X - Exception"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d21c918c-a661-4798-9c19-3027ec5cace6",
+      "name": "Route Decision (A/H/E/X)",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        2860,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.api_base }}/cases/{{ $('Orchestrator: Open Case').first().json.case_id }}/apply/A",
+        "options": {
+          "timeout": 900000
+        }
+      },
+      "id": "0b246e26-805d-4c59-9f00-54021a3aa1f7",
+      "name": "[A] Auto-close False Positive (+QA sample)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3100,
+        60
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.api_base }}/cases/{{ $('Orchestrator: Open Case').first().json.case_id }}/apply/H",
+        "options": {
+          "timeout": 900000
+        }
+      },
+      "id": "cb6b2c18-6964-4c3b-b08b-621951278c60",
+      "name": "[H] Queue for Fraud Investigator",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3100,
+        220
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.api_base }}/cases/{{ $('Orchestrator: Open Case').first().json.case_id }}/apply/E",
+        "options": {
+          "timeout": 900000
+        }
+      },
+      "id": "8fc3fb43-d948-41c6-94e6-2acbd9dc0a2e",
+      "name": "[E] Escalate to L2 + Notify",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3100,
+        380
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.api_base }}/cases/{{ $('Orchestrator: Open Case').first().json.case_id }}/apply/X",
+        "options": {
+          "timeout": 900000
+        }
+      },
+      "id": "a857d361-4b7d-4519-8bb6-80ebd79afe06",
+      "name": "[X] Exception Queue + Notify Ops",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3100,
+        540
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      },
+      "id": "c89e17f0-2efd-43cc-9458-176cfe06bc70",
+      "name": "Return Case to UI",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3360,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fd256c4a-2fda-4810-8a39-3b1c74b908f0",
+              "name": "ok",
+              "value": "={{ false }}",
+              "type": "boolean"
+            },
+            {
+              "id": "fe61c272-0ad6-4ccc-a49f-11c99322aa6c",
+              "name": "route",
+              "value": "X",
+              "type": "string"
+            },
+            {
+              "id": "e0a75947-214c-4791-b4ff-1cd64db13100",
+              "name": "error",
+              "value": "={{ $json.error ? ($json.error.message || JSON.stringify($json.error)) : 'Service call failed' }}",
+              "type": "string"
+            },
+            {
+              "id": "e15a012d-1aae-4a4b-976e-5c1d454579e2",
+              "name": "case_id",
+              "value": "={{ $('Orchestrator: Open Case').isExecuted ? $('Orchestrator: Open Case').first().json.case_id : null }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "62518dac-c7a2-49a2-92c8-fff996b291b2",
+      "name": "Technical Exception",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1540,
+        820
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      },
+      "id": "84028a8b-0487-4a87-9bdf-bf3a41b328be",
+      "name": "Return Exception to UI",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1780,
+        820
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Governed Agentic AI - Fraud Investigation\n**Fraud Alert -> Orchestrator -> Transaction Analysis Agent -> Customer Behaviour Agent -> Risk/Policy Agent -> Recommendation Agent -> Human Fraud Investigator -> Outcome**\n\nMarks: **[A]** autonomous, **[H]** human-in-the-loop, **[E]** escalation, **[X]** exception.\nEvery HTTP call goes to the FastAPI service (tools, agents, guardrails, audit).",
+        "height": 230,
+        "width": 820,
+        "color": 6
+      },
+      "id": "af98fab2-5027-4b30-b1fd-317de8b71995",
+      "name": "Note f8f709",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -20,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### [A] Autonomous steps\nEvidence gathering, rules engine, 4 LLM agents, schema + grounding checks, routing policy. Agents only *recommend*; they cannot act.",
+        "height": 130,
+        "width": 1500,
+        "color": 4
+      },
+      "id": "d0852dc4-657d-48f1-b248-435c9dd594ca",
+      "name": "Note 13134e",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1060,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### Routing policy (deterministic)\nE if ESCALATE / risk>=70 / critical rule\nA only if PROCEED, risk<30, confidence>=0.8, no flags\nX on missing data or agent failure\nH otherwise",
+        "height": 220,
+        "width": 380,
+        "color": 3
+      },
+      "id": "f6797fd5-5513-4bb7-b175-8ab07525c105",
+      "name": "Note 2f5105",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2600,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### Exception handling\nAny failed service call leaves via the red error output and is returned as a technical exception (route X).",
+        "height": 130,
+        "width": 420,
+        "color": 2
+      },
+      "id": "521e207d-36a0-4679-b9c2-1cb12ac64b61",
+      "name": "Note 85a5da",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1480,
+        960
+      ]
+    }
+  ],
+  "connections": {
+    "Fraud Alert Webhook": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Orchestrator: Open Case",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Orchestrator: Open Case": {
+      "main": [
+        [
+          {
+            "node": "Tool: Gather Evidence & Run Rules",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Technical Exception",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool: Gather Evidence & Run Rules": {
+      "main": [
+        [
+          {
+            "node": "Evidence complete?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Technical Exception",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evidence complete?": {
+      "main": [
+        [
+          {
+            "node": "Agent 1: Transaction Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Guardrails: Routing Policy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent 1: Transaction Analysis": {
+      "main": [
+        [
+          {
+            "node": "Agent 1 valid?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Technical Exception",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent 1 valid?": {
+      "main": [
+        [
+          {
+            "node": "Agent 2: Customer Behaviour",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Guardrails: Routing Policy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent 2: Customer Behaviour": {
+      "main": [
+        [
+          {
+            "node": "Agent 2 valid?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Technical Exception",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent 2 valid?": {
+      "main": [
+        [
+          {
+            "node": "Agent 3: Risk & Policy",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Guardrails: Routing Policy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent 3: Risk & Policy": {
+      "main": [
+        [
+          {
+            "node": "Agent 3 valid?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Technical Exception",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent 3 valid?": {
+      "main": [
+        [
+          {
+            "node": "Agent 4: Recommendation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Guardrails: Routing Policy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent 4: Recommendation": {
+      "main": [
+        [
+          {
+            "node": "Guardrails: Routing Policy",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Technical Exception",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardrails: Routing Policy": {
+      "main": [
+        [
+          {
+            "node": "Route Decision (A/H/E/X)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Technical Exception",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Decision (A/H/E/X)": {
+      "main": [
+        [
+          {
+            "node": "[A] Auto-close False Positive (+QA sample)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "[H] Queue for Fraud Investigator",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "[E] Escalate to L2 + Notify",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "[X] Exception Queue + Notify Ops",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "[A] Auto-close False Positive (+QA sample)": {
+      "main": [
+        [
+          {
+            "node": "Return Case to UI",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Technical Exception",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "[H] Queue for Fraud Investigator": {
+      "main": [
+        [
+          {
+            "node": "Return Case to UI",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Technical Exception",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "[E] Escalate to L2 + Notify": {
+      "main": [
+        [
+          {
+            "node": "Return Case to UI",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Technical Exception",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "[X] Exception Queue + Notify Ops": {
+      "main": [
+        [
+          {
+            "node": "Return Case to UI",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Technical Exception",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Technical Exception": {
+      "main": [
+        [
+          {
+            "node": "Return Exception to UI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "tags": []
+}

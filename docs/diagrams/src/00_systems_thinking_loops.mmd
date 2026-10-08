@@ -1,0 +1,22 @@
+flowchart LR
+    rules["More / tighter<br/>FRM rules"] -->|+| alerts["Alert volume"]
+    alerts -->|+| backlog["Analyst backlog"]
+    backlog -->|+| delay["Time to decision"]
+    delay -->|+| losses["Fraud losses<br/>(money leaves in minutes)"]
+    losses -->|+| rules
+    alerts -->|+| fp["False positives"]
+    fp -->|+| friction["Genuine customers<br/>blocked / annoyed"]
+    friction -->|+| workarounds["Complaints &<br/>customer workarounds"]
+    workarounds -->|+| fp
+    fp -->|+| disp["Dispositions analysed"]
+    disp -->|+| tuning["Rule tuning"]
+    tuning -->|−| fp
+    R1(("R1<br/>Fatigue<br/>spiral")):::loopR
+    R2(("R2<br/>Friction<br/>spiral")):::loopR
+    B1(("B1<br/>Learning<br/>loop")):::loopB
+    lever1["LEVER 1: agents gather<br/>evidence in seconds"]:::lever -.-> delay
+    lever2["LEVER 2: risk-based routing<br/>auto-closes clear false positives"]:::lever -.-> backlog
+    lever3["LEVER 3: every decision &<br/>override logged with reason"]:::lever -.-> disp
+    classDef loopR fill:#fbe3e4,stroke:#a3242b,color:#a3242b
+    classDef loopB fill:#e3f4ea,stroke:#1f7a4d,color:#1f7a4d
+    classDef lever fill:#fff6d6,stroke:#b07400,color:#5a3d00

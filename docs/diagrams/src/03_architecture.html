@@ -1,0 +1,74 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+  :root{--ink:#1c2533;--muted:#5b6b80;--line:#c3cfdd;--ui:#e2ecf8;--wf:#e7e8f7;--ag:#e3f4ea;--llm:#f3e8fb;--data:#eef3fa;--gr:#fff6d6;--gov:#fbe3e4}
+  *{box-sizing:border-box} body{margin:0;background:#fff;font-family:"Segoe UI",Inter,Arial,sans-serif;color:var(--ink)}
+  .wrap{width:1600px;padding:28px 32px}
+  h1{font-size:26px;margin:0 0 4px} .sub{color:var(--muted);font-size:14px;margin-bottom:18px}
+  .grid{display:grid;grid-template-columns:1fr 360px;gap:22px}
+  .layer{border:1.5px solid var(--line);border-radius:12px;padding:12px 14px 14px;margin-bottom:8px;position:relative}
+  .layer h2{font-size:15px;margin:0 0 10px;letter-spacing:.2px} .layer h2 span{color:var(--muted);font-weight:500;font-size:13px}
+  .row{display:flex;gap:10px;flex-wrap:wrap}
+  .box{background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:8px;padding:8px 10px;font-size:13px;line-height:1.35;flex:1;min-width:150px}
+  .box b{display:block;font-size:13.5px;margin-bottom:2px}
+  .arrow{text-align:center;color:var(--muted);font-size:12.5px;margin:2px 0 8px;line-height:1.2}
+  .arrow::before{content:"▼";display:block;font-size:14px;color:#8395ad}
+  .ui{background:var(--ui)} .wf{background:var(--wf)} .ag{background:var(--ag)} .llm{background:var(--llm)} .data{background:var(--data)}
+  .side .layer{height:auto} .gr{background:var(--gr);border-color:#e3c56a} .gov{background:var(--gov);border-color:#e6a5a9}
+  .tag{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;margin-right:4px}
+  .A{background:#1f7a4d;color:#fff}.H{background:#b07400;color:#fff}.E{background:#a3242b;color:#fff}.X{background:#4a4f8c;color:#fff}
+  ul{margin:4px 0 0 16px;padding:0;font-size:12.8px;line-height:1.45} li{margin-bottom:2px}
+  .flow{font-family:Consolas,monospace;font-size:12px;background:#fff;border:1px dashed #8395ad;border-radius:8px;padding:6px 8px;margin-top:8px}
+</style></head><body><div class="wrap">
+<h1>Technical &amp; Governance Architecture: FraudOps Copilot</h1>
+<div class="sub">Governed Agentic AI for banking fraud investigation · all data synthetic · agents recommend, the routing policy and humans decide</div>
+<div class="grid">
+<div>
+  <div class="layer ui"><h2>① UI / UX layer <span>light web app served by the API (one page, vanilla JS)</span></h2>
+    <div class="row">
+      <div class="box"><b>Alert Inbox</b>FRM alerts · investigate (n8n or fast engine) · live agent progress · model picker</div>
+      <div class="box"><b>Case queues</b>agent trace · evidence pack · guardrail flags · HITL form (approve / override + reason)</div>
+      <div class="box"><b>Model Comparison</b>benchmark metrics &amp; charts · per-case decisions</div>
+      <div class="box"><b>Governance &amp; Audit</b>hash-chain verification · RBAC/action matrix · notifications</div>
+      <div class="box"><b>Roles</b>L1 Analyst · L2 Senior Investigator · Auditor (read-only)</div>
+    </div></div>
+  <div class="arrow">POST /webhook/fraud-investigate · POST /webhook/fraud-decision</div>
+  <div class="layer wf"><h2>② Workflow / orchestration layer <span>n8n</span></h2>
+    <div class="row">
+      <div class="box"><b>WF-01 Investigation Orchestrator</b>webhook → open case → evidence tool → Agent 1→2→3→4 with IF checks → routing policy → Switch <span class="tag A">A</span><span class="tag H">H</span><span class="tag E">E</span><span class="tag X">X</span> → respond · error outputs → technical exception</div>
+      <div class="box"><b>WF-02 HITL Decision Handler</b>webhook → RBAC-validated decision → outcome branch (release / verify / hold / protective actions + STR draft)</div>
+      <div class="box"><b>WF-03 SLA Escalation Monitor</b>every 5 min → undecided cases older than 15 min → Head of Fraud Ops</div>
+      <div class="box"><b>Fast built-in engine</b>identical steps in-process, agents 1 &amp; 2 in parallel: daily use, demo fallback, model benchmark</div>
+    </div>
+    <div class="flow">HTTP: /cases/start → /tools/evidence → /agents/transaction_analysis → /agents/customer_behaviour → /agents/risk_policy → /agents/recommendation → /guardrails/route → /cases/{id}/apply/{A|H|E|X}</div></div>
+  <div class="arrow">REST calls to FastAPI service</div>
+  <div class="layer ag"><h2>③ Agent layer <span>FastAPI /agents/* · STOIC prompts v3.1 · Pydantic schemas · 1 repair retry</span></h2>
+    <div class="row">
+      <div class="box"><b>1 · Transaction Analysis</b>anomalies vs 90-day baseline, mitigating factors, anomaly score</div>
+      <div class="box"><b>2 · Customer Behaviour</b>takeover, scam/social-engineering and mule indicators</div>
+      <div class="box"><b>3 · Risk &amp; Policy</b>risk score &amp; band, typology, bank policy P1–P7, regulatory notes</div>
+      <div class="box"><b>4 · Recommendation</b>PROCEED / VERIFY / HOLD / ESCALATE, confidence, cited rationale, actions</div>
+    </div></div>
+  <div class="row" style="gap:22px">
+    <div style="flex:1"><div class="arrow">Gemini API / OpenAI-compatible API (temperature 0, JSON mode)</div>
+      <div class="layer llm"><h2>④ Model layer <span>open-weight LLMs</span></h2>
+        <div class="row"><div class="box"><b>Google AI Studio (free)</b>Gemma 4 31B · Gemma 4 26B-A4B<br><span style="color:#5b6b80">(Gemini Flash: closed reference only)</span></div><div class="box"><b>Cerebras (free)</b>gpt-oss 120B · Qwen 3.8 27B</div>
+        <div class="box"><b>Also wired in</b>Mistral · NVIDIA NIM · OpenRouter · Groq · Ollama (local)</div></div></div></div>
+    <div style="flex:1.25"><div class="arrow">tool calls / SQL</div>
+      <div class="layer data"><h2>⑤ Tools &amp; data layer <span>FastAPI /tools · SQLite (synthetic)</span></h2>
+        <div class="row"><div class="box"><b>Evidence builder</b>8 sources → 17–18 cited facts (E1…En)</div>
+        <div class="box"><b>Rules engine</b>15 FRM rules, weighted score</div>
+        <div class="box"><b>Watchlists</b>mule accounts · device reputation</div></div>
+        <div class="row" style="margin-top:8px"><div class="box"><b>Synthetic bank DB</b>customers · accounts · ~1,800 txns · devices · security events · beneficiaries · alerts</div>
+        <div class="box"><b>Case store &amp; audit</b>cases · notifications · SHA-256 hash-chained audit log</div></div></div></div>
+  </div>
+</div>
+<div class="side">
+  <div class="layer gr"><h2>⑥ Guardrails <span>cross-cutting</span></h2>
+    <b style="font-size:13px">Data</b><ul><li>Synthetic data only</li><li>PII pseudonymisation (names, phone, PAN, accounts)</li><li>PII-leak check before every model call</li></ul>
+    <b style="font-size:13px">Model</b><ul><li>Prompt-injection screen; remarks treated as untrusted data</li><li>Schema validation + repair retry</li><li>Grounding check: citations must exist, risk claims must be supported</li><li>Rules-score risk floor (model can raise, never lower)</li><li>Prompt versioning, temperature 0</li></ul>
+    <b style="font-size:13px">Action</b><ul><li>Deterministic routing: auto-close only if PROCEED, risk&lt;30, confidence≥0.8, no flags; escalate if risk≥70 or critical rule</li><li>Action allow-list; blocking only by L2</li><li>Mandatory reason for overrides</li><li>10% QA sampling of auto-closures; 15-min SLA</li></ul></div>
+  <div class="layer gov"><h2>⑦ Human oversight &amp; governance</h2>
+    <ul><li><span class="tag H">H</span>L1 analyst decides H-route cases</li><li><span class="tag E">E</span>L2 senior decides escalations &amp; blocking</li><li>Auditor: read-only, verifies hash chain</li><li>Model benchmark before adoption (3+ open models)</li><li>Mapped to NIST AI RMF · ISO/IEC 42001 · RBI FREE-AI · DPDP Act 2023</li></ul></div>
+</div>
+</div></div></body></html>

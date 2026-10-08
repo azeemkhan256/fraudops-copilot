@@ -1,0 +1,57 @@
+flowchart TB
+    subgraph CUST["👤 Customer / Fraudster"]
+        c1(["Initiates UPI / IMPS / card txn"])
+        c9(["Reports fraud late via<br/>1930 / branch / call centre"])
+    end
+    subgraph FRM["⚙️ FRM rules engine"]
+        f1["Static rules score txn"]
+        f2{"Rule threshold<br/>breached?"}
+        f3["Alert created in<br/>FIFO queue"]
+    end
+    subgraph L1["🧑‍💻 L1 Fraud Analyst"]
+        a1["Picks next alert<br/>⏱ queue wait 30–120 min at peak*"]
+        a2["Swivel-chair look-ups in 6–8 screens<br/>CBS · card/UPI switch · device & login logs ·<br/>CRM · beneficiary module · negative list<br/>⏱ 15–25 min per alert* 🔴 BOTTLENECK"]
+        a3["Writes free-text notes<br/>(no standard reasoning)"]
+        a4{"Judgement:<br/>genuine / unsure / suspicious?"}
+        a5["Close alert<br/>(often no reason captured)"]
+        a6["Request customer call-back"]
+        a7["Escalate by email / phone"]
+    end
+    subgraph SYS["🗄️ Source systems (siloed)"]
+        s1[("Core banking")]
+        s2[("Card / UPI switch")]
+        s3[("Device & login logs")]
+        s4[("CRM / KYC")]
+        s5[("Watchlists")]
+    end
+    subgraph CC["📞 Contact centre"]
+        k1["Calls customer<br/>⏱ hours · customer unreachable ⚠️"]
+    end
+    subgraph L2["🧑‍⚖️ L2 Senior Investigator"]
+        b1["Re-collects the same evidence<br/>🔴 DUPLICATE EFFORT"]
+        b2{"Block / freeze?"}
+        b3["Blocks card / account"]
+    end
+    subgraph COMP["📑 Compliance / AML"]
+        p1["Drafts STR manually<br/>⏱ days"]
+    end
+    c1 --> f1 --> f2
+    f2 -- "No" --> ok(["Txn completes"])
+    f2 -- "Yes (most alerts are false positives)" --> f3 --> a1 --> a2
+    a2 -.-> s1 & s2 & s3 & s4 & s5
+    a2 --> a3 --> a4
+    a4 -- "Genuine" --> a5
+    a4 -- "Unsure" --> a6 --> k1
+    k1 -- "Confirmed genuine" --> a5
+    k1 -- "No answer ⚠️ exception: alert parked" --> a1
+    a4 -- "Suspicious" --> a7 --> b1 --> b2
+    b2 -- "Yes" --> b3 --> p1
+    b2 -- "No" --> a5
+    a2 -. "System down / data missing ⚠️<br/>alert parked, no SLA" .-> a1
+    f3 -. "⏱ Push payment already settled:<br/>money moved before review" .-> c9
+    legend["LEGEND  ⏱ delay · 🔴 bottleneck · ⚠️ exception · ◇ decision<br/>* indicative timings, to be validated in the expert interview"]:::note
+    classDef note fill:#ffffff,stroke:#999,stroke-dasharray:4 3,color:#333
+    classDef pain fill:#fbe3e4,stroke:#a3242b,color:#5c1015
+    classDef dec fill:#fff6d6,stroke:#b07400
+    class a2,b1 pain
+    class f2,a4,b2 dec

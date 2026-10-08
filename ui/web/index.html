@@ -1,0 +1,791 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FraudOps Console</title>
+<style>
+:root{
+  --bg:#f5f6f8;--panel:#fff;--ink:#1b1f24;--muted:#5f6b7a;--line:#e2e6eb;--soft:#f0f2f5;
+  --accent:#1f5fbf;--accent-ink:#fff;--ok:#1e8a4c;--warn:#a86a12;--bad:#c0392b;
+  --A:#1e8a4c;--H:#b7791f;--E:#c0392b;--X:#6b5bb5;
+  --radius:8px;--mono:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#111418;--panel:#181c22;--ink:#e6e9ee;--muted:#9aa5b1;--line:#2a3038;--soft:#1f242b;
+  --accent:#6ea8ff;--accent-ink:#0b1220;--ok:#4cc38a;--warn:#e0a84a;--bad:#ff7b6b;
+  --A:#4cc38a;--H:#e0a84a;--E:#ff7b6b;--X:#a99cf0;}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+h1{font-size:20px;margin:0 0 4px}h2{font-size:17px;margin:0}h3{font-size:14px;margin:0 0 8px}
+.muted{color:var(--muted)}.small{font-size:12px}.mono{font-family:var(--mono);font-size:12px}
+.app{display:grid;grid-template-columns:250px 1fr;min-height:100vh}
+aside{background:var(--panel);border-right:1px solid var(--line);padding:16px;position:sticky;top:0;height:100vh;overflow:auto}
+.brand{font-weight:700;font-size:15px}.brand span{display:block;font-weight:400;font-size:12px;color:var(--muted)}
+nav{margin:16px 0;display:flex;flex-direction:column;gap:2px}
+nav a{padding:7px 10px;border-radius:6px;color:var(--ink);display:flex;justify-content:space-between}
+nav a.on{background:var(--soft);font-weight:600}nav a:hover{text-decoration:none;background:var(--soft)}
+label.f{display:block;font-size:12px;color:var(--muted);margin:10px 0 3px}
+select,input[type=text],textarea{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font:inherit}
+textarea{min-height:70px;resize:vertical}
+.hint{font-size:12px;color:var(--muted);margin-top:3px}.hint.bad{color:var(--bad)}
+.legend{margin-top:18px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
+.legend div{margin:3px 0}
+main{padding:20px 24px;min-width:0}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.pills{display:flex;gap:6px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:2px 9px;border-radius:999px;border:1px solid var(--line);background:var(--panel);white-space:nowrap}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}.dot.ok{background:var(--ok)}.dot.bad{background:var(--bad)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:14px;min-width:0}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px}
+.kpi b{display:block;font-size:22px}.kpi span{font-size:12px;color:var(--muted)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}.btn.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.danger{color:var(--bad)}.btn[disabled]{opacity:.5;cursor:default}
+.btn.sm{padding:3px 9px;font-size:12px}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-weight:600;color:var(--muted);font-size:12px;border-bottom:1px solid var(--line);padding:6px 8px;white-space:nowrap}
+.tbl td{border-bottom:1px solid var(--line);padding:7px 8px;vertical-align:top}
+.tbl tr:last-child td{border-bottom:0}
+.scroll{overflow-x:auto}
+.chip{display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;background:var(--soft);border:1px solid var(--line);margin:1px 2px 1px 0;white-space:nowrap}
+.chip.warn{color:var(--warn);border-color:currentColor;background:transparent}
+.chip.bad{color:var(--bad);border-color:currentColor;background:transparent}
+.chip.ok{color:var(--ok);border-color:currentColor;background:transparent}
+.route{display:inline-block;font-weight:700;font-size:12px;padding:2px 8px;border-radius:5px;color:#fff;white-space:nowrap}
+.route.A{background:var(--A)}.route.H{background:var(--H)}.route.E{background:var(--E)}.route.X{background:var(--X)}
+@media (prefers-color-scheme:dark){.route{color:#111}}
+.status{font-size:11px;font-family:var(--mono);color:var(--muted)}
+.eid{font-family:var(--mono);font-size:11px;background:var(--soft);border:1px solid var(--line);border-radius:4px;padding:0 4px}
+.run{border:1px solid var(--line);border-radius:var(--radius);padding:12px;margin-bottom:10px;background:var(--panel)}
+.run-h{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:6px}
+.step{border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:12px;background:var(--soft)}
+.step b{display:block;font-size:12px;margin-bottom:2px}
+.step.ok{border-color:var(--ok)}.step.fail{border-color:var(--bad)}.step.run{border-color:var(--accent)}
+.step.wait,.step.skip{opacity:.55}
+.ic{display:inline-block;width:14px;text-align:center;font-weight:700}
+.step.ok .ic{color:var(--ok)}.step.fail .ic{color:var(--bad)}.step.run .ic{color:var(--accent)}
+.spin{display:inline-block;width:10px;height:10px;border:2px solid var(--accent);border-right-color:transparent;border-radius:50%;animation:sp .8s linear infinite;vertical-align:-1px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.result{margin-top:10px;padding:10px;border-radius:6px;border-left:4px solid var(--muted);background:var(--soft)}
+.result.A{border-color:var(--A)}.result.H{border-color:var(--H)}.result.E{border-color:var(--E)}.result.X,.result.err{border-color:var(--X)}
+.split{display:grid;grid-template-columns:300px 1fr;gap:14px;align-items:start}.split>*{min-width:0}
+.tbl td.mono,.tbl td .mono{overflow-wrap:anywhere}.nw{white-space:nowrap}
+#settings>summary{list-style:none;cursor:default;font-size:12px;font-weight:600;color:var(--muted);margin-top:8px}#settings>summary::-webkit-details-marker{display:none}
+.qtabs{display:flex;gap:4px;flex-wrap:wrap;margin:10px 0 12px}
+.qtabs a{padding:5px 10px;border:1px solid var(--line);border-radius:999px;font-size:12px;color:var(--ink);background:var(--panel)}
+.qtabs a.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.qtabs a:hover{text-decoration:none}
+.clist{display:flex;flex-direction:column;gap:6px;max-height:calc(100vh - 170px);overflow:auto}
+.ci{display:block;border:1px solid var(--line);border-radius:6px;padding:8px 10px;background:var(--panel);color:var(--ink)}
+.ci:hover{text-decoration:none;border-color:var(--accent)}.ci.on{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.ci .r1{display:flex;justify-content:space-between;gap:6px;align-items:center}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin:12px 0}
+.stat{background:var(--soft);border-radius:6px;padding:8px 10px}.stat span{font-size:11px;color:var(--muted);display:block}.stat b{font-size:16px}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin:4px 0 12px;flex-wrap:wrap}
+.tabs a{padding:7px 12px;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs a.on{color:var(--ink);border-color:var(--accent);font-weight:600}.tabs a:hover{text-decoration:none;color:var(--ink)}
+dl.kv{display:grid;grid-template-columns:minmax(120px,max-content) 1fr;gap:4px 12px;margin:6px 0}
+dl.kv dt{color:var(--muted);font-size:12px}dl.kv dd{margin:0;min-width:0}
+dl.kv ul{margin:0;padding-left:18px}
+.agent{border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin-bottom:10px}
+.agent-h{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+details summary{cursor:pointer;color:var(--muted);font-size:12px}
+pre{white-space:pre-wrap;word-break:break-word;background:var(--soft);padding:8px;border-radius:6px;font:12px/1.4 var(--mono);margin:6px 0;max-height:360px;overflow:auto}
+.facts{margin:0;padding-left:0;list-style:none}.facts li{padding:5px 0;border-bottom:1px dashed var(--line)}
+.box{border:1px dashed var(--warn);border-radius:6px;padding:8px 10px;background:transparent}
+.decide{border:2px solid var(--accent);border-radius:var(--radius);padding:14px;margin:12px 0}
+.dopts{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:6px;margin:8px 0}
+.dopt{border:1px solid var(--line);border-radius:6px;padding:8px;cursor:pointer;background:var(--panel);text-align:left;font:inherit;color:var(--ink)}
+.dopt.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
+.dopt small{display:block;color:var(--muted);font-size:11px}
+.ok-t{color:var(--ok)}.bad-t{color:var(--bad)}.warn-t{color:var(--warn)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:14px}.grid2>*{min-width:0}
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(460px,100%),1fr));gap:14px}
+.bars .b{display:grid;grid-template-columns:160px 1fr 44px;gap:8px;align-items:center;margin:5px 0;font-size:12px}
+.bars .t{background:var(--soft);border-radius:4px;height:14px;overflow:hidden}.bars .t i{display:block;height:100%;background:var(--accent)}
+.best{font-weight:700;color:var(--ok)}
+img.fig{max-width:100%;border:1px solid var(--line);border-radius:6px;background:#fff}
+#toasts{position:fixed;right:16px;bottom:16px;display:flex;flex-direction:column;gap:6px;z-index:9;max-width:min(420px,calc(100vw - 32px))}
+.toast{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);padding:8px 12px;border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.12);font-size:13px}
+.toast.err{border-left-color:var(--bad)}.toast.ok{border-left-color:var(--ok)}
+.loading{color:var(--muted);padding:30px 0}
+@media (max-width:900px){
+  #settings>summary{cursor:pointer;color:var(--accent)}#settings:not([open])>summary::after{content:" ▸ tap to change"}
+  .app{grid-template-columns:1fr}aside{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line)}
+  nav{flex-direction:row;flex-wrap:wrap}.split{grid-template-columns:1fr}.clist{max-height:none}
+  main{padding:16px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<aside>
+  <div class="brand">FraudOps Console<span>Governed agentic AI · fraud investigation PoC · synthetic data only</span></div>
+  <nav id="nav">
+    <a href="#inbox" data-v="inbox">Alert inbox <span id="runbadge" class="small muted"></span></a>
+    <a href="#cases" data-v="cases">Case queues</a>
+    <a href="#models" data-v="models">Model comparison</a>
+    <a href="#governance" data-v="governance">Governance &amp; audit</a>
+    <a href="#architecture" data-v="architecture">Architecture</a>
+  </nav>
+  <details id="settings" open><summary>Settings</summary>
+  <label class="f" for="s-model">AI model</label>
+  <select id="s-model"></select>
+  <div class="hint" id="s-model-hint"></div>
+  <label class="f" for="s-engine">Orchestrator</label>
+  <select id="s-engine">
+    <option value="python">Fast · built-in engine</option>
+    <option value="n8n">n8n workflow</option>
+  </select>
+  <div class="hint" id="s-engine-hint"></div>
+  <label class="f" for="s-user">Investigator ID</label>
+  <input type="text" id="s-user" maxlength="40">
+  <label class="f" for="s-role">Role (RBAC)</label>
+  <select id="s-role">
+    <option value="ANALYST">Fraud Analyst (L1)</option>
+    <option value="SENIOR">Senior Investigator (L2)</option>
+    <option value="AUDITOR">Internal Auditor (read-only)</option>
+  </select>
+  <label class="f" style="display:flex;gap:6px;align-items:center;color:var(--ink)"><input type="checkbox" id="s-cache"> Reuse identical AI answers (cache)</label>
+  <div class="hint">On: re-running the same alert with the same model is instant. Benchmarks always call the model fresh.</div>
+  <div class="legend">
+    <div><span class="route A">A</span> Autonomous: low-risk false positive closed by the system</div>
+    <div><span class="route H">H</span> Human-in-the-loop: analyst decides</div>
+    <div><span class="route E">E</span> Escalation: Senior Investigator (L2)</div>
+    <div><span class="route X">X</span> Exception: data or agent failure, manual handling</div>
+  </div>
+  </details>
+</aside>
+<main id="main"><div class="loading">Loading…</div></main>
+</div>
+<div id="toasts"></div>
+<script>
+"use strict";
+const AGENTS = ["transaction_analysis", "customer_behaviour", "risk_policy", "recommendation"];
+const TITLES = {transaction_analysis: "Transaction Analysis", customer_behaviour: "Customer Behaviour",
+  risk_policy: "Risk & Policy", recommendation: "Recommendation"};
+// Fast engine runs agents 1 and 2 side by side; the n8n workflow runs them one after another.
+const DEPS = {
+  python: {transaction_analysis: [], customer_behaviour: [], risk_policy: ["transaction_analysis", "customer_behaviour"],
+           recommendation: ["transaction_analysis", "customer_behaviour", "risk_policy"]},
+  n8n: {transaction_analysis: [], customer_behaviour: ["transaction_analysis"], risk_policy: ["transaction_analysis", "customer_behaviour"],
+        recommendation: ["transaction_analysis", "customer_behaviour", "risk_policy"]}};
+const ROUTE_LABEL = {A: "Autonomous", H: "Human-in-the-loop", E: "Escalation", X: "Exception"};
+const DECISION_HELP = {PROCEED: "Genuine, release / close", VERIFY: "Step-up verification", HOLD: "Hold payment, verify",
+  ESCALATE: "Protective action / L2"};
+const QUEUES = [
+  ["decide", "Needs decision", c => c.status === "PENDING_REVIEW"],
+  ["l2", "Escalated (L2)", c => c.status === "ESCALATED"],
+  ["x", "Exceptions", c => c.status === "EXCEPTION"],
+  ["qa", "QA samples", c => c.qa_sampled && c.status === "AUTO_CLOSED"],
+  ["auto", "Auto-closed", c => c.status === "AUTO_CLOSED"],
+  ["done", "Decided", c => c.status === "DECIDED"],
+  ["all", "All", () => true]];
+
+const S = {settings: {}, models: [], status: {}, roles: null, health: null, alerts: [], cases: [], runs: [],
+  busy: new Set(), view: "inbox", caseId: null, case: null, caseTab: "trace", queue: "decide", pick: null,
+  lastDecision: null, bulk: false};
+
+const $ = (s, r = document) => r.querySelector(s);
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const eids = s => esc(s).replace(/\b(E\d{1,2})\b/g, '<span class="eid">$1</span>');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const money = a => a == null ? "" : "₹" + Number(a).toLocaleString("en-IN", {maximumFractionDigits: 0});
+const when = ts => ts ? esc(String(ts).slice(5, 16)) : "";
+const secs = ms => ms == null ? "–" : (ms / 1000).toFixed(1) + "s";
+const pct = v => v == null ? "–" : Math.round(v * 100) + "%";
+const human = k => String(k).replace(/_/g, " ");
+const routeBadge = r => r ? `<span class="route ${esc(r)}" title="${esc(ROUTE_LABEL[r] || "")}">${esc(r)} · ${esc(ROUTE_LABEL[r] || r)}</span>` : "";
+const chips = (arr, cls = "") => (arr || []).map(x => `<span class="chip ${cls}">${esc(x)}</span>`).join("") || '<span class="muted small">none</span>';
+
+function store(k, v) { try { localStorage.setItem("fraudops." + k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } }
+function recall(k, d) { try { const v = localStorage.getItem("fraudops." + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }
+
+async function api(path, opts = {}) {
+  const o = {method: opts.method || (opts.body !== undefined ? "POST" : "GET"), headers: {}};
+  if (opts.body !== undefined) { o.headers["Content-Type"] = "application/json"; o.body = JSON.stringify(opts.body); }
+  const r = await fetch(path, o);
+  let data = null;
+  try { data = await r.json(); } catch (e) { /* not JSON */ }
+  if (!r.ok) {
+    const msg = data && (data.detail || data.error);
+    throw new Error(typeof msg === "string" ? msg : (msg ? JSON.stringify(msg) : `${r.status} ${r.statusText}`));
+  }
+  return data;
+}
+
+function toast(msg, kind = "") {
+  const t = document.createElement("div");
+  t.className = "toast " + kind;
+  t.textContent = msg;
+  $("#toasts").appendChild(t);
+  setTimeout(() => t.remove(), kind === "err" ? 8000 : 4000);
+}
+
+// ------------------------------------------------------------------ settings sidebar
+function renderSettings() {
+  const sel = $("#s-model");
+  const ready = S.models.filter(m => m.ready && !["mock", "ollama"].includes(m.provider));
+  const local = S.models.filter(m => m.provider === "ollama");
+  const notReady = S.models.filter(m => !m.ready);
+  const mock = S.models.filter(m => m.provider === "mock");
+  const opt = m => `<option value="${esc(m.label)}">${esc(m.label)}${m.fast ? " ⚡" : ""}${m.benchmark ? " ★" : ""}${m.reference ? " (closed ref)" : ""}</option>`;
+  sel.innerHTML = (ready.length ? `<optgroup label="Ready (key found)">${ready.map(opt).join("")}</optgroup>` : "")
+    + (mock.length ? `<optgroup label="Offline test">${mock.map(opt).join("")}</optgroup>` : "")
+    + (local.length ? `<optgroup label="Local (needs Ollama running)">${local.map(opt).join("")}</optgroup>` : "")
+    + (notReady.length ? `<optgroup label="Needs an API key in .env">${notReady.map(opt).join("")}</optgroup>` : "");
+  const saved = recall("model", null);
+  const pickable = l => S.models.some(m => m.label === l);
+  const dflt = S.models.find(m => m.label === S.status.default_model && m.ready);
+  S.settings.model = pickable(saved) ? saved : dflt ? dflt.label : (ready[0] || mock[0] || S.models[0] || {}).label;
+  sel.value = S.settings.model;
+  S.settings.engine = recall("engine", "python");
+  const qs = new URLSearchParams(location.search).get("engine");   // set by the launcher: option 1 = python, 9 = n8n
+  if (qs === "python" || qs === "n8n") {
+    S.settings.engine = qs;
+    store("engine", qs);
+    history.replaceState(null, "", location.pathname + location.hash);
+  }
+  S.settings.user = recall("user", "INV-001");
+  S.settings.role = recall("role", "ANALYST");
+  $("#s-engine").value = S.settings.engine;
+  $("#s-user").value = S.settings.user;
+  $("#s-role").value = S.settings.role;
+  $("#s-cache").checked = !!S.status.cache;
+  updateHints();
+}
+
+function updateHints() {
+  const m = S.models.find(x => x.label === S.settings.model) || {};
+  const h = $("#s-model-hint");
+  if (!m.ready) { h.className = "hint bad"; h.textContent = m.note || "Model not available"; }
+  else if (m.provider === "ollama") { h.className = "hint"; h.textContent = "Runs on this PC: needs Ollama installed and the model pulled. " + (m.family || ""); }
+  else { h.className = "hint"; h.textContent = (m.fast ? "⚡ fast · " : "") + (m.benchmark ? "★ benchmark set · " : "") + (m.family || ""); }
+  const n8nOpt = $('#s-engine option[value="n8n"]');
+  n8nOpt.textContent = S.status.n8n ? "n8n workflow (running)" : "n8n workflow (not running)";
+  const eh = $("#s-engine-hint");
+  if (S.settings.engine === "n8n" && !S.status.n8n) { eh.className = "hint bad"; eh.textContent = "n8n is not running. Use the fast engine, or start with launcher option 9."; }
+  else if (S.settings.engine === "n8n") { eh.className = "hint"; eh.textContent = "Runs the n8n workflow: each step is a node you can show in n8n's Executions tab."; }
+  else { eh.className = "hint"; eh.textContent = "Same steps and guardrails as n8n, in-process. Agents 1 and 2 run in parallel."; }
+}
+
+function bindSettings() {
+  $("#s-model").onchange = e => { S.settings.model = e.target.value; store("model", S.settings.model); updateHints(); };
+  $("#s-engine").onchange = e => { S.settings.engine = e.target.value; store("engine", S.settings.engine); updateHints(); };
+  $("#s-user").oninput = e => { S.settings.user = e.target.value.trim(); store("user", S.settings.user); };
+  $("#s-role").onchange = e => { S.settings.role = e.target.value; store("role", S.settings.role); if (S.view === "cases" && S.case) renderCase(); };
+  $("#s-cache").onchange = async e => {
+    try { const r = await api("/ui/settings", {body: {cache: e.target.checked}}); S.status.cache = r.cache; toast("Answer cache " + (r.cache ? "on" : "off"), "ok"); }
+    catch (err) { toast(err.message, "err"); e.target.checked = !e.target.checked; }
+  };
+}
+
+async function refreshStatus() {
+  try { S.status = await api("/ui/status"); updateHints(); renderTopPills(); } catch (e) { /* API restarting */ }
+}
+
+function topBar(title, sub) {
+  return `<div class="top"><div><h1>${esc(title)}</h1><div class="muted small">${sub}</div></div><div class="pills" id="pills"></div></div>`;
+}
+function renderTopPills() {
+  const el = $("#pills");
+  if (!el) return;
+  el.innerHTML = `<span class="pill"><span class="dot ok"></span>API</span>`
+    + `<span class="pill" title="n8n orchestration server"><span class="dot ${S.status.n8n ? "ok" : ""}"></span>n8n ${S.status.n8n ? "running" : "off"}</span>`
+    + `<span class="pill"><span class="dot ${S.status.cache ? "ok" : ""}"></span>cache ${S.status.cache ? "on" : "off"}</span>`;
+}
+
+// ------------------------------------------------------------------ inbox
+async function viewInbox() {
+  $("#main").innerHTML = topBar("Alert inbox", "Alerts raised by the bank's rules engine. <b>Investigate</b> runs: evidence tools → agents 1 &amp; 2 → Risk &amp; Policy → Recommendation → deterministic routing (A / H / E / X).")
+    + `<div class="kpis" id="kpis"></div><div id="runs"></div><div class="card"><div class="top" style="margin:0 0 8px"><h3 style="margin:0">Alerts</h3>`
+    + `<div class="pills"><button class="btn sm" data-act="refresh">Refresh</button><button class="btn sm pri" data-act="runall" id="runall">Investigate all NEW</button></div></div>`
+    + `<div class="scroll" id="alerts"><div class="loading">Loading alerts…</div></div></div>`;
+  renderTopPills();
+  renderRuns();
+  await loadInboxData();
+}
+
+async function loadInboxData() {
+  try { [S.alerts, S.cases] = await Promise.all([api("/alerts"), api("/cases")]); }
+  catch (e) { toast(e.message, "err"); return; }
+  if (S.view !== "inbox") return;
+  const cnt = st => S.cases.filter(c => c.status === st).length;
+  $("#kpis").innerHTML = [
+    [S.alerts.length, "alerts"], [S.alerts.filter(a => a.status === "NEW").length, "new, not investigated"],
+    [cnt("PENDING_REVIEW"), "waiting for analyst (H)"], [cnt("ESCALATED"), "escalated to L2 (E)"],
+    [cnt("AUTO_CLOSED"), "auto-closed (A)"], [cnt("EXCEPTION"), "exceptions (X)"], [cnt("DECIDED"), "decided by a human"]]
+    .map(([n, l]) => `<div class="kpi"><b>${n}</b><span>${l}</span></div>`).join("");
+  const latest = {};
+  for (const c of S.cases) if (!latest[c.alert_id]) latest[c.alert_id] = c;  // /cases is newest first
+  $("#alerts").innerHTML = `<table class="tbl"><thead><tr><th>Alert</th><th>Raised</th><th>What the rules engine saw</th><th>Channel</th><th>Amount</th><th>FRM</th><th>Rules</th><th>Status</th><th>Latest case</th><th></th></tr></thead><tbody>`
+    + S.alerts.map(a => {
+      const c = latest[a.alert_id];
+      const busy = S.busy.has(a.alert_id);
+      return `<tr><td class="mono">${esc(a.alert_id)}</td><td class="small nw">${when(a.ts)}</td><td>${esc(a.title)}<div class="small muted">${esc(a.segment || "")}${a.home_city ? " · " + esc(a.home_city) : ""}</div></td>`
+        + `<td class="small">${esc(a.channel || "")}</td><td>${money(a.amount)}</td><td>${esc(a.frm_score)}</td><td>${chips(a.trigger_rules)}</td>`
+        + `<td><span class="status">${esc(a.status)}</span></td>`
+        + `<td>${c ? `<a href="#case/${esc(c.case_id)}">${routeBadge(c.route) || esc(c.status)}</a>` : '<span class="muted small">–</span>'}</td>`
+        + `<td><button class="btn sm ${a.status === "NEW" ? "pri" : ""}" data-act="run" data-id="${esc(a.alert_id)}" ${busy ? "disabled" : ""}>${busy ? '<span class="spin"></span> Running' : a.status === "NEW" ? "Investigate" : "Re-run"}</button></td></tr>`;
+    }).join("") + "</tbody></table>";
+  const ra = $("#runall");
+  if (ra) ra.disabled = S.bulk || !S.alerts.some(a => a.status === "NEW");
+}
+
+function stepState(agent, p, j, engine) {
+  const ag = p.agents || {};
+  const r = ag[agent];
+  if (r) return r.ok ? "ok" : "fail";
+  if (!p.evidence) return j.done ? "skip" : "wait";
+  const deps = (DEPS[engine] || DEPS.python)[agent];
+  if (j.done || deps.some(d => ag[d] && !ag[d].ok)) return "skip";
+  return deps.every(d => ag[d] && ag[d].ok) ? "run" : "wait";
+}
+const ICON = {ok: "✓", fail: "✗", run: '<span class="spin"></span>', wait: "·", skip: "–"};
+
+function runCard(run) {
+  const j = run.state || {done: false};
+  const p = j.progress || {};
+  const step = (state, title, detail) => `<div class="step ${state}"><b><span class="ic">${ICON[state]}</span> ${title}</b>${detail || ""}</div>`;
+  const opened = p.case_id ? "ok" : (j.done ? "fail" : "run");
+  let evState = p.evidence ? "ok" : p.status === "EVIDENCE_FAILED" ? "fail" : p.case_id ? (j.done ? "fail" : "run") : "wait";
+  const ev = p.evidence;
+  const evDetail = ev ? `${ev.facts} facts · rules score ${esc(ev.rule_score)}${ev.injection ? ' · <span class="bad-t">injection quarantined</span>' : ""}`
+    : p.status === "EVIDENCE_FAILED" ? `<span class="bad-t">${esc(p.error || "data unavailable")}</span>` : "bank tools + rules";
+  const agentSteps = AGENTS.map(a => {
+    const st = stepState(a, p, j, run.engine);
+    const r = (p.agents || {})[a];
+    const det = r ? (r.ok ? `${secs(r.latency_ms)}${r.cached ? ' · <span class="ok-t">from cache</span>' : ""}` : `<span class="bad-t">${esc((r.error || "failed").slice(0, 90))}</span>`)
+      : st === "run" ? "thinking…" : st === "skip" ? "skipped" : "waiting";
+    return step(st, TITLES[a], det);
+  }).join("");
+  const rt = p.route ? "ok" : j.done ? "ok" : "wait";
+  const routeDetail = p.route ? routeBadge(p.route) : "deterministic policy";
+  let result = "";
+  if (j.done) {
+    const r = j.result || {};
+    if (!r.route) {
+      result = `<div class="result err"><b>Run failed:</b> ${esc(r.error || r.message || "no result")}</div>`;
+    } else {
+      result = `<div class="result ${esc(r.route)}"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">${routeBadge(r.route)}`
+        + `<span>risk <b>${esc(r.risk_score ?? "–")}</b> ${esc(r.risk_band || "")}</span><span>AI decision <b>${esc(r.decision || "–")}</b></span>`
+        + `<span>confidence <b>${r.confidence == null ? "–" : Number(r.confidence).toFixed(2)}</b></span>`
+        + `<a class="btn sm" href="#case/${esc(r.case_id)}">Open case →</a></div>`
+        + `<div class="small" style="margin-top:6px">${esc(r.reason || "")}</div>`
+        + (r.flags && r.flags.length ? `<div style="margin-top:4px">${chips(r.flags, "warn")}</div>` : "")
+        + (r.interventions && r.interventions.length ? `<div style="margin-top:4px">${chips(r.interventions, "ok")}</div>` : "")
+        + (r.error ? `<div class="small bad-t" style="margin-top:4px">${esc(r.error)}</div>` : "")
+        + (/model_call_failed/.test(r.error || "") ? `<div class="small" style="margin-top:4px"><b>The AI model could not be used.</b> The case went to the exception queue instead of failing silently. Pick another model in the sidebar; launcher option 2 lists the models your key can reach.</div>` : "") + `</div>`;
+    }
+  }
+  return `<div class="run"><div class="run-h"><div><b class="mono">${esc(run.alert)}</b> <span class="muted small">· ${esc(run.model)} · ${run.engine === "n8n" ? "n8n workflow" : "fast engine"}${p.case_id ? " · " + esc(p.case_id) : ""}</span></div>`
+    + `<div class="small">${j.done ? "finished in" : '<span class="spin"></span> running'} <b>${j.elapsed_s ?? 0}s</b> ${j.done ? `<button class="btn sm" data-act="dismiss" data-job="${esc(run.job)}">✕</button>` : ""}</div></div>`
+    + `<div class="steps">${step(opened, "Case opened", p.case_id ? "audit started" : "")}${step(evState, "Evidence", evDetail)}${agentSteps}${step(rt, "Routing", routeDetail)}</div>${result}</div>`;
+}
+
+function renderRuns() {
+  const running = S.runs.filter(r => !(r.state && r.state.done)).length;
+  $("#runbadge").textContent = running ? `${running} running` : "";
+  const el = $("#runs");
+  if (el) el.innerHTML = S.runs.slice(0, 4).map(runCard).join("");
+}
+
+async function startRun(alertId) {
+  const s = S.settings;
+  if (S.busy.has(alertId)) return;
+  let job;
+  try { job = await api("/ui/investigate", {body: {alert_id: alertId, model: s.model, orchestrator: s.engine}}); }
+  catch (e) { toast(e.message, "err"); return; }
+  const run = {job: job.job_id, alert: alertId, model: s.model, engine: s.engine, state: null};
+  S.runs.unshift(run);
+  S.runs = S.runs.slice(0, 12);
+  S.busy.add(alertId);
+  renderRuns();
+  if (S.view === "inbox") loadInboxData();
+  for (;;) {
+    try { run.state = await api("/ui/jobs/" + run.job); }
+    catch (e) { run.state = {done: true, elapsed_s: run.state ? run.state.elapsed_s : 0, result: {error: e.message}}; }
+    renderRuns();
+    if (run.state.done) break;
+    await sleep(700);
+  }
+  S.busy.delete(alertId);
+  const r = run.state.result || {};
+  toast(r.route ? `${alertId}: route ${r.route} (${ROUTE_LABEL[r.route]}) in ${run.state.elapsed_s}s` : `${alertId}: ${r.error || "failed"}`, r.route ? "ok" : "err");
+  if (S.view === "inbox") loadInboxData();
+}
+
+async function runAllNew() {
+  const ids = S.alerts.filter(a => a.status === "NEW").map(a => a.alert_id);
+  if (!ids.length) return;
+  S.bulk = true;
+  $("#runall") && ($("#runall").disabled = true);
+  for (const id of ids) await startRun(id);   // one at a time: friendlier to free-tier rate limits
+  S.bulk = false;
+  if (S.view === "inbox") loadInboxData();
+}
+
+// ------------------------------------------------------------------ cases
+async function viewCases() {
+  $("#main").innerHTML = topBar("Case queues", "Human-in-the-loop work queues. Open a case to see the agent trace, evidence, guardrails and audit trail, then decide.")
+    + `<div class="qtabs" id="qtabs"></div><div class="split"><div class="clist" id="clist"><div class="loading">Loading…</div></div><div id="cdetail"></div></div>`;
+  renderTopPills();
+  try { S.cases = await api("/cases"); } catch (e) { toast(e.message, "err"); return; }
+  if (S.caseId) {
+    const c = S.cases.find(x => x.case_id === S.caseId);
+    const cur = QUEUES.find(q => q[0] === S.queue);
+    if (c && !(cur && cur[2](c))) S.queue = (QUEUES.find(q => q[0] !== "qa" && q[2](c)) || QUEUES[QUEUES.length - 1])[0];
+  }
+  renderCaseList();
+  if (S.caseId) loadCase(S.caseId);
+  else $("#cdetail").innerHTML = `<div class="card muted">Pick a case on the left. New cases appear here after you investigate an alert in the inbox.</div>`;
+}
+
+function renderCaseList() {
+  $("#qtabs").innerHTML = QUEUES.map(([k, l, f]) => `<a href="#" data-act="queue" data-q="${k}" class="${S.queue === k ? "on" : ""}">${l} (${S.cases.filter(f).length})</a>`).join("");
+  const q = QUEUES.find(x => x[0] === S.queue) || QUEUES[0];
+  const list = S.cases.filter(q[2]);
+  $("#clist").innerHTML = list.length ? list.map(c => `<a class="ci ${c.case_id === S.caseId ? "on" : ""}" href="#case/${esc(c.case_id)}">`
+    + `<div class="r1"><b class="mono">${esc(c.case_id)}</b>${c.route ? `<span class="route ${esc(c.route)}">${esc(c.route)}</span>` : ""}</div>`
+    + `<div class="small muted">${esc(c.alert_id)} · ${esc(c.model)} · ${esc(c.orchestrator)}</div>`
+    + `<div class="small">risk <b>${esc(c.risk_score ?? "–")}</b> · ${esc(c.decision || "–")} · <span class="status">${esc(c.status)}</span>${c.qa_sampled ? ' · <span class="chip warn">QA</span>' : ""}</div></a>`).join("")
+    : `<div class="card muted small">No cases in this queue.</div>`;
+}
+
+async function loadCase(id) {
+  try { S.case = await api("/cases/" + encodeURIComponent(id)); }
+  catch (e) { $("#cdetail").innerHTML = `<div class="card bad-t">${esc(e.message)}</div>`; return; }
+  if (S.pick && S.pick.case !== id) S.pick = null;
+  renderCase();
+}
+
+function allowedDecisions(role, route) {
+  if (role === "SENIOR") return ["PROCEED", "VERIFY", "HOLD", "ESCALATE"];
+  if (role === "ANALYST" && ["H", "A", "X"].includes(route)) return ["PROCEED", "VERIFY", "HOLD", "ESCALATE"];
+  return [];
+}
+
+function actionPreview(decision, role) {
+  if (!S.roles) return "";
+  if (role === "ANALYST" && decision === "ESCALATE") return `<div class="small">Refers the case to the L2 queue. Blocking actions stay with a Senior Investigator.</div>`;
+  const acts = S.roles.decision_actions[decision] || [];
+  const ok = acts.filter(a => S.roles.actions[a].roles.includes(role));
+  const no = acts.filter(a => !S.roles.actions[a].roles.includes(role));
+  return `<div class="small"><b>Will execute (simulated):</b> ${ok.map(a => esc(S.roles.actions[a].label)).join("; ") || "nothing"}</div>`
+    + (no.length ? `<div class="small warn-t"><b>Withheld for your role:</b> ${no.map(a => esc(S.roles.actions[a].label)).join("; ")}</div>` : "");
+}
+
+function decisionPanel(c) {
+  const role = S.settings.role;
+  const route = c.route || "X";
+  if (c.status === "DECIDED") return "";
+  if (["NEW", "EVIDENCE_READY", "IN_ANALYSIS"].includes(c.status)) return `<div class="decide muted">Investigation still running…</div>`;
+  if (role === "AUDITOR") return `<div class="decide"><h3>Decision</h3><div class="muted">Internal Auditor is a read-only role: you can inspect everything but cannot decide or act.</div></div>`;
+  const allowed = allowedDecisions(role, route);
+  if (!allowed.length) return `<div class="decide"><h3>Decision</h3><div>This case is in the <b>L2 escalation queue</b>. Only a Senior Investigator can decide it. Switch the role in the sidebar to try, or keep Analyst to show the block.</div>`
+    + `<button class="btn" style="margin-top:8px" data-act="decide-try">Try deciding as ${esc(role)} anyway</button><div id="decres"></div></div>`;
+  const pick = S.pick && S.pick.case === c.case_id ? S.pick.decision : (c.decision && allowed.includes(c.decision) ? c.decision : allowed[0]);
+  const override = !!c.decision && pick !== c.decision;
+  const needReason = override || route === "X";
+  return `<div class="decide"><h3>Your decision (${esc(role)})</h3>`
+    + `<div class="small muted">AI recommends <b>${esc(c.decision || "nothing (exception)")}</b>. You hold decision authority; choosing differently is an override and needs a written reason.</div>`
+    + `<div class="dopts">${allowed.map(d => `<button class="dopt ${d === pick ? "on" : ""}" data-act="pick" data-d="${d}"><b>${d}</b>${d === c.decision ? " · AI" : ""}<small>${DECISION_HELP[d]}</small></button>`).join("")}</div>`
+    + actionPreview(pick, role)
+    + `<label class="f" for="reason">Reason ${needReason ? '<span class="bad-t">(required, at least 15 characters' + (route === "X" ? ": exception case" : ": override") + ")</span>" : "(optional)"}</label>`
+    + `<textarea id="reason" placeholder="e.g. Customer confirmed on registered number that the payment is genuine">${esc(S.pick && S.pick.case === c.case_id ? S.pick.reason || "" : "")}</textarea>`
+    + `<div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn pri" data-act="decide" data-d="${pick}">Submit ${pick}${override ? " (override)" : ""}</button>`
+    + `<span class="small muted">as ${esc(S.settings.user || "?")} via ${S.settings.engine === "n8n" && S.status.n8n ? "n8n decision workflow" : "fast engine"}</span></div><div id="decres"></div></div>`;
+}
+
+function decisionResult(res) {
+  if (!res) return "";
+  if (res.ok === false || res.error && !res.case_id) return `<div class="result err" style="margin-top:10px"><b>Blocked by guardrail:</b> ${esc(res.error || res.message)}</div>`;
+  return `<div class="result A" style="margin-top:10px"><b>Recorded:</b> ${esc(res.human_decision || res.decision || "")}${res.override ? " (override, reason logged)" : ""}`
+    + (res.message ? `<div class="small">${esc(res.message)}</div>` : "")
+    + (res.actions_executed ? `<div class="small"><b>Executed (simulated):</b> ${chips(res.actions_executed, "ok")}</div>` : "")
+    + (res.actions_withheld && res.actions_withheld.length ? `<div class="small"><b>Withheld (needs L2):</b> ${chips(res.actions_withheld, "warn")}</div>` : "")
+    + (res.str_draft ? `<details open><summary>STR draft for compliance (not filed)</summary><pre>${esc(res.str_draft)}</pre></details>` : "") + `</div>`;
+}
+
+function renderCase() {
+  const c = S.case;
+  if (!c || !$("#cdetail")) return;
+  const g = c.guardrails || {};
+  const rec = ((c.agents || {}).recommendation || {}).output || {};
+  const last = S.lastDecision && S.lastDecision.case === c.case_id ? decisionResult(S.lastDecision.res) : "";
+  const tabs = [["trace", "Agent trace"], ["evidence", "Evidence"], ["guardrails", "Guardrails & routing"], ["audit", `Audit (${(c.audit || []).length})`]];
+  $("#cdetail").innerHTML = `<div class="card"><div class="top" style="margin:0"><div><h2 class="mono">${esc(c.case_id)}</h2>`
+    + `<div class="small muted">Alert ${esc(c.alert_id)} · model ${esc(c.model_label)} · ${esc(c.orchestrator)} · opened ${when(c.created_at)} · model time ${secs(c.total_latency_ms)}</div></div>`
+    + `<div class="pills">${routeBadge(c.route)}<span class="pill">${esc(c.status)}</span>${c.qa_sampled ? '<span class="pill warn-t">QA sampled</span>' : ""}</div></div>`
+    + `<div class="stats"><div class="stat"><span>Final risk</span><b>${esc(c.risk_score ?? "–")}</b> <span style="display:inline">${esc(c.risk_band || "")}</span></div>`
+    + `<div class="stat"><span>AI decision</span><b>${esc(c.decision || "–")}</b></div>`
+    + `<div class="stat"><span>Confidence</span><b>${c.confidence == null ? "–" : Number(c.confidence).toFixed(2)}</b></div>`
+    + `<div class="stat"><span>Rules score / model risk</span><b>${esc(g.rule_score ?? "–")} / ${esc(g.llm_risk ?? "–")}</b></div>`
+    + `<div class="stat"><span>Human decision</span><b>${esc(c.human_decision || "pending")}</b></div></div>`
+    + `<div><b>Why this route:</b> ${esc(g.reason || c.error || "–")}</div>`
+    + ((g.flags || []).length ? `<div style="margin-top:6px"><span class="small muted">Guardrail flags:</span> ${chips(g.flags, "warn")}</div>` : "")
+    + ((g.interventions || []).length ? `<div style="margin-top:4px"><span class="small muted">Interventions:</span> ${chips(g.interventions, "ok")}</div>` : "")
+    + (rec.rationale ? `<div style="margin-top:10px"><b>AI rationale:</b> ${eids(rec.rationale)}</div>` : "")
+    + ((rec.recommended_actions || []).length ? `<div style="margin-top:6px"><b>Recommended next actions:</b><ul style="margin:4px 0">${rec.recommended_actions.map(a => `<li>${esc(a)}</li>`).join("")}</ul></div>` : "")
+    + (c.human_decision ? `<div class="result A" style="margin-top:10px"><b>Decided:</b> ${esc(c.human_decision)} by ${esc(c.decided_by)} (${esc(c.decided_role)}) at ${esc(c.decided_at)}${c.human_reason ? `<div class="small">Reason: ${esc(c.human_reason)}</div>` : ""}</div>` : "")
+    + last + decisionPanel(c)
+    + ((c.actions || []).length ? `<div style="margin-top:10px"><b>Actions log</b><table class="tbl"><tbody>${c.actions.map(a => `<tr><td>${esc(a.label || human(a.action))}</td><td class="small">${esc(a.by)}${a.role ? " · " + esc(a.role) : ""}</td><td class="small nw">${when(a.at)}</td><td class="small ok-t">${esc(a.status)}</td></tr>`).join("")}</tbody></table></div>` : "")
+    + `</div><div class="card"><div class="tabs">${tabs.map(([k, l]) => `<a href="#" data-act="tab" data-t="${k}" class="${S.caseTab === k ? "on" : ""}">${esc(l)}</a>`).join("")}</div><div id="ctab">${caseTab(c)}</div></div>`;
+}
+
+function renderValue(k, v) {
+  if (v === null || v === undefined || v === "") return '<span class="muted">–</span>';
+  if (k === "evidence_ids" && Array.isArray(v)) return v.map(x => `<span class="eid">${esc(x)}</span>`).join(" ") || '<span class="muted">none</span>';
+  if (Array.isArray(v)) {
+    if (!v.length) return '<span class="muted">none</span>';
+    if (v.every(x => typeof x !== "object")) return chips(v);
+    return `<ul>${v.map(x => `<li>${Object.entries(x).map(([kk, vv]) => kk === "evidence_ids" ? renderValue(kk, vv)
+      : kk === "severity" ? `<span class="chip ${vv === "HIGH" ? "bad" : vv === "MEDIUM" ? "warn" : ""}">${esc(vv)}</span>` : eids(vv)).join(" ")}</li>`).join("")}</ul>`;
+  }
+  if (typeof v === "boolean") return v ? "yes" : "no";
+  if (typeof v === "object") return `<span class="mono">${esc(JSON.stringify(v))}</span>`;
+  return eids(v);
+}
+
+function agentCard(a, r) {
+  if (!r) return `<div class="agent muted"><b>${TITLES[a]} Agent</b> · not run</div>`;
+  const o = r.output || {};
+  const gr = r.grounding || {};
+  const lead = o.summary || o.rationale;
+  const flags = [r.ok ? '<span class="chip ok">valid output</span>' : '<span class="chip bad">failed</span>',
+    `<span class="chip">${secs(r.latency_ms)}</span>`, `<span class="chip">attempts ${esc(r.attempts)}</span>`,
+    r.valid_first_try ? '<span class="chip ok">JSON valid first try</span>' : r.ok ? '<span class="chip warn">repaired once</span>' : "",
+    r.cached ? '<span class="chip ok">from cache</span>' : "",
+    r.ok ? (gr.grounded ? '<span class="chip ok">grounded</span>' : '<span class="chip warn">grounding issue</span>') : "",
+    r.pii_leak_blocked ? '<span class="chip warn">PII redacted before call</span>' : ""].join("");
+  return `<div class="agent"><div class="agent-h"><b>${TITLES[a]} Agent</b><span>${flags}</span></div>`
+    + (lead ? `<div style="margin:4px 0 6px">${eids(lead)}</div>` : "")
+    + (r.ok ? `<dl class="kv">${Object.entries(o).filter(([k]) => k !== "summary" && k !== "rationale").map(([k, v]) => `<dt>${esc(human(k))}</dt><dd>${renderValue(k, v)}</dd>`).join("")}</dl>` : "")
+    + ((gr.invalid_citations || []).length ? `<div class="small warn-t">Cited facts that do not exist: ${esc(gr.invalid_citations.join(", "))}</div>` : "")
+    + ((gr.unsupported_claims || []).length ? `<div class="small warn-t">Claims not found in evidence: ${esc(gr.unsupported_claims.join("; "))}</div>` : "")
+    + (r.error ? `<div class="small bad-t">${esc(r.error)}</div>` : "")
+    + `<details><summary>Raw model reply · ${esc(r.model)} · prompt ${esc(r.prompt_version)} · ${esc(r.prompt_chars)} prompt chars</summary><pre>${esc(r.raw || "")}</pre></details></div>`;
+}
+
+function caseTab(c) {
+  const ev = c.evidence || {};
+  const g = c.guardrails || {};
+  if (S.caseTab === "trace") {
+    return `<div class="small muted" style="margin-bottom:8px">Each agent gets a STOIC prompt and the same evidence pack, must return JSON that matches its schema (one repair retry), and is checked for citations of facts that exist.</div>`
+      + AGENTS.map(a => agentCard(a, (c.agents || {})[a])).join("");
+  }
+  if (S.caseTab === "evidence") {
+    if (!c.evidence) return `<div class="bad-t">No evidence pack: ${esc(c.error || "data unavailable")}</div>`;
+    const sig = ev.signals || {};
+    return `<div class="grid2"><div><h3>Facts given to the agents</h3><ol class="facts">${(ev.facts || []).map(f => `<li><span class="eid">${esc(f.id)}</span> <span class="chip">${esc(f.source)}</span> ${esc(f.text)}</li>`).join("")}</ol></div>`
+      + `<div><h3>Rules engine</h3><div class="small">score <b>${esc(ev.rule_score)}</b> · band <b>${esc(ev.rule_band)}</b></div><table class="tbl"><tbody>${(ev.rule_hits || []).map(h => `<tr><td class="mono">${esc(h.rule_id)}</td><td>${esc(h.name)}<div class="small muted">${esc(h.evidence)}</div></td><td><span class="chip ${h.severity === "CRITICAL" || h.severity === "HIGH" ? "bad" : "warn"}">${esc(h.severity)}</span></td><td>+${esc(h.weight)}</td></tr>`).join("") || '<tr><td class="muted">no rule hits</td></tr>'}</tbody></table>`
+      + `<h3 style="margin-top:14px">Untrusted free text</h3><div class="box"><div class="small muted">Customer / counterparty remarks: treated as data, never as instructions.</div>${esc(ev.untrusted_remarks || "(none)")}`
+      + `<div class="small" style="margin-top:4px">Injection screen: ${ev.injection_detected ? `<b class="bad-t">FLAGGED</b> ${chips(ev.injection_patterns, "bad")}` : '<span class="ok-t">clean</span>'}</div></div>`
+      + `<h3 style="margin-top:14px">Computed signals</h3><dl class="kv">${Object.entries(sig).map(([k, v]) => `<dt>${esc(human(k))}</dt><dd>${esc(v === null ? "–" : v === true ? "yes" : v === false ? "no" : v)}</dd>`).join("")}</dl></div></div>`;
+  }
+  if (S.caseTab === "guardrails") {
+    const th = (S.health || {}).thresholds || {};
+    const hits = ev.rule_hits || [];
+    const high = hits.some(h => ["HIGH", "CRITICAL"].includes(h.severity));
+    const crit = hits.some(h => h.severity === "CRITICAL");
+    const risk = g.final_risk;
+    const chk = (ok, text) => `<li><span class="${ok ? "ok-t" : "muted"}">${ok ? "✓" : "✗"}</span> ${text}</li>`;
+    if (!g.route) return `<div class="muted">Routing has not run yet.</div>`;
+    return `<div class="grid2"><div><h3>Routing policy (code, not the model)</h3><div>${routeBadge(g.route)} ${esc(g.reason)}</div>`
+      + `<p class="small muted">Escalate if any is true:</p><ul class="small">${chk(g.decision === "ESCALATE", "Recommendation is ESCALATE")}${chk(risk != null && risk >= th.escalate_min_risk, `Final risk ≥ ${esc(th.escalate_min_risk)}`)}${chk(crit, "A CRITICAL rule fired")}</ul>`
+      + `<p class="small muted">Auto-close only if all are true:</p><ul class="small">${chk(g.decision === "PROCEED", "Recommendation is PROCEED")}${chk(risk != null && risk < th.auto_close_max_risk, `Final risk &lt; ${esc(th.auto_close_max_risk)}`)}`
+      + `${chk(g.confidence != null && g.confidence >= th.auto_close_min_confidence, `Confidence ≥ ${esc(th.auto_close_min_confidence)}`)}${chk(!(g.flags || []).length, "No guardrail flags")}${chk(!high, "No HIGH / CRITICAL rule")}</ul>`
+      + `<p class="small muted">Otherwise → H (human review). Any data or agent failure → X.</p></div>`
+      + `<div><h3>Numbers the policy used</h3><dl class="kv"><dt>Rules-engine score</dt><dd>${esc(g.rule_score ?? "–")}</dd><dt>Model risk score</dt><dd>${esc(g.llm_risk ?? "–")}</dd>`
+      + `<dt>Final risk (higher of the two)</dt><dd><b>${esc(g.final_risk ?? "–")}</b> ${esc(g.risk_band || "")}</dd><dt>Decision / confidence</dt><dd>${esc(g.decision || "–")} / ${g.confidence == null ? "–" : Number(g.confidence).toFixed(2)}</dd>`
+      + `<dt>Flags</dt><dd>${chips(g.flags, "warn")}</dd><dt>Interventions</dt><dd>${chips(g.interventions, "ok")}</dd><dt>QA sampling</dt><dd>${pct(th.qa_sample_rate)} of auto-closed cases ${c.qa_sampled ? "(this one was sampled)" : ""}</dd></dl>`
+      + `<details><summary>Raw guardrail record</summary><pre>${esc(JSON.stringify(g, null, 1))}</pre></details></div></div>`;
+  }
+  const rows = c.audit || [];
+  return `<div class="small muted" style="margin-bottom:6px">Every step is written to a SHA-256 hash-chained log. Verify the whole chain on the Governance page.</div><div class="scroll"><table class="tbl"><thead><tr><th>#</th><th>Time</th><th>Actor</th><th>Role</th><th>Action</th><th>Details</th></tr></thead><tbody>`
+    + rows.map(r => `<tr><td>${esc(r.seq)}</td><td class="small nw">${when(r.ts)}</td><td class="small">${esc(r.actor)}</td><td class="small">${esc(r.actor_role)}</td><td><b class="small">${esc(r.action)}</b></td><td class="mono">${r.details && r.details.length > 140 ? `<details><summary>${esc(r.details.slice(0, 140))}…</summary>${esc(r.details)}</details>` : esc(r.details)}</td></tr>`).join("")
+    + "</tbody></table></div>";
+}
+
+async function submitDecision(decision) {
+  const c = S.case;
+  const reasonEl = $("#reason");
+  const reason = reasonEl ? reasonEl.value : "";
+  if (!S.settings.user) { toast("Enter your investigator ID in the sidebar", "err"); return; }
+  let res;
+  try {
+    res = await api("/ui/decide", {body: {case_id: c.case_id, decision, investigator: S.settings.user, role: S.settings.role, reason, orchestrator: S.settings.engine}});
+  } catch (e) { res = {ok: false, error: e.message}; }
+  S.lastDecision = {case: c.case_id, res};
+  if (res.ok === false) {
+    const el = $("#decres");
+    if (el) el.innerHTML = decisionResult(res);
+    toast(res.error || "Blocked", "err");
+    return;
+  }
+  toast(`${c.case_id}: ${decision} recorded`, "ok");
+  S.pick = null;
+  try { S.cases = await api("/cases"); renderCaseList(); } catch (e) { /* ignore */ }
+  await loadCase(c.case_id);
+}
+
+// ------------------------------------------------------------------ models
+const METRICS = [
+  ["acceptable_accuracy", "Acceptable decision accuracy", 1], ["decision_accuracy", "Exact decision accuracy", 1],
+  ["macro_f1", "Macro-F1 (decisions)", 1], ["route_accuracy", "Route accuracy (A/H/E/X)", 1],
+  ["escalation_recall", "Escalation recall", 1], ["escalation_precision", "Escalation precision", 1],
+  ["false_positive_rate", "False-positive rate", -1], ["fraud_recall", "Fraud recall", 1],
+  ["missed_fraud", "Fraud cases recommended PROCEED", -1], ["hallucination_rate", "Hallucination rate", -1],
+  ["explanation_quality", "Explanation quality (0-5)", 1], ["schema_first_try", "Valid JSON first try", 1],
+  ["schema_final", "Valid JSON after repair", 1], ["task_completion", "Task completion", 1],
+  ["avg_latency_s", "Avg latency per case (s)", -1], ["p95_latency_s", "p95 latency (s)", -1],
+  ["avg_tokens_per_case", "Avg tokens per case", -1], ["guardrail_saves", "Cases rescued by guardrails", 0],
+  ["injection_stress_fooled", "Fooled by raw prompt injection", -1], ["composite_score", "Composite score (0-100)", 1]];
+
+async function viewModels() {
+  $("#main").innerHTML = topBar("Model comparison", "Same evidence, prompts, schemas and routing policy for every model. Run the benchmark from the launcher (option 3).") + `<div id="mbody"><div class="loading">Loading…</div></div>`;
+  renderTopPills();
+  let b, models;
+  try { [b, models] = await Promise.all([api("/ui/benchmark"), api("/models")]); } catch (e) { toast(e.message, "err"); return; }
+  let html = "";
+  if (!b.available) {
+    html += `<div class="card"><h3>No benchmark results yet</h3><div>Run <b>START_HERE.bat → 3</b>. It runs all 13 synthetic cases through each model and writes <span class="mono">benchmark/results/</span>; this page then shows the table and charts.</div></div>`;
+  } else {
+    const ms = b.summary.models || [];
+    const fmt = v => v === null || v === undefined ? "–" : typeof v === "boolean" ? (v ? "yes" : "no") : typeof v === "number" ? (Number.isInteger(v) ? v : v.toFixed(3).replace(/0+$/, "").replace(/\.$/, "")) : esc(v);
+    const best = (k, dir) => {
+      const vals = ms.map(m => m[k]).filter(v => typeof v === "number");
+      if (!dir || !vals.length) return null;
+      return dir > 0 ? Math.max(...vals) : Math.min(...vals);
+    };
+    html += `<div class="card"><h3>Run ${esc(b.summary.run_id)} · prompt ${esc(b.summary.prompt_version)} · ${esc(b.summary.cases)} cases</h3><div class="scroll"><table class="tbl"><thead><tr><th>Metric</th>${ms.map(m => `<th>${esc(m.model)}${m.open_weight === false ? " (closed ref)" : ""}</th>`).join("")}</tr></thead><tbody>`
+      + METRICS.map(([k, l, dir]) => { const bv = best(k, dir); return `<tr><td>${esc(l)}${dir < 0 ? ' <span class="muted small">↓ better</span>' : ""}</td>${ms.map(m => `<td class="${bv !== null && m[k] === bv && ms.length > 1 ? "best" : ""}">${fmt(m[k])}</td>`).join("")}</tr>`; }).join("")
+      + `</tbody></table></div><div class="small muted" style="margin-top:6px">Bold green = best for that metric. Composite weights: ${esc(Object.entries(b.summary.metric_weights || {}).map(([k, v]) => k + " " + v).join(", "))}</div></div>`;
+    html += `<div class="card bars"><h3>Composite score</h3>${ms.map(m => `<div class="b"><span>${esc(m.model)}</span><span class="t"><i style="width:${Math.max(0, Math.min(100, m.composite_score || 0))}%"></i></span><b>${fmt(m.composite_score)}</b></div>`).join("")}</div>`;
+    if ((b.charts || []).length) html += `<div class="charts">${b.charts.map(n => `<div class="card"><img class="fig" loading="lazy" src="/ui/file/chart/${encodeURIComponent(n)}" alt="${esc(n)}"></div>`).join("")}</div>`;
+    if ((b.per_case || []).length) {
+      const names = [...new Set(b.per_case.map(r => r.model))];
+      const byCase = {};
+      for (const r of b.per_case) (byCase[r.alert_id] = byCase[r.alert_id] || {meta: r, m: {}}).m[r.model] = r;
+      const mark = v => v === "True" ? '<span class="ok-t">✓</span>' : v === "False" ? '<span class="bad-t">✗</span>' : "";
+      html += `<div class="card"><h3>Per case: decision / route</h3><div class="scroll"><table class="tbl"><thead><tr><th>Alert</th><th>Category</th><th>Expected</th>${names.map(n => `<th>${esc(n)}</th>`).join("")}</tr></thead><tbody>`
+        + Object.entries(byCase).map(([id, x]) => `<tr><td class="mono">${esc(id)}</td><td class="small">${esc(x.meta.category)}</td><td class="small">${esc(x.meta.expected_decision || "–")} / ${esc(x.meta.expected_route)}</td>`
+          + names.map(n => { const r = x.m[n]; return r ? `<td class="small">${esc(r.decision || "–")} ${mark(r.decision_ok)} / ${esc(r.route)} ${mark(r.route_ok)}<div class="muted">${esc(r.latency_s)}s</div></td>` : "<td>–</td>"; }).join("") + "</tr>").join("")
+        + "</tbody></table></div></div>";
+    }
+  }
+  html += `<div class="card"><h3>Models configured (models.json)</h3><div class="scroll"><table class="tbl"><thead><tr><th>Label</th><th>Model family / host</th><th>Provider</th><th>Tags</th><th>Key</th></tr></thead><tbody>`
+    + models.map(m => `<tr><td class="mono">${esc(m.label)}</td><td class="small">${esc(m.family)}</td><td class="small">${esc(m.provider)}</td><td>${m.benchmark ? '<span class="chip ok">★ benchmark</span>' : ""}${m.fast ? '<span class="chip">⚡ fast</span>' : ""}${m.reference ? '<span class="chip warn">closed reference</span>' : ""}</td>`
+      + `<td class="small ${m.ready ? "ok-t" : "muted"}">${m.provider === "ollama" ? "local · needs Ollama" : m.ready ? "ready" : esc(m.note)}</td></tr>`).join("") + "</tbody></table></div></div>";
+  if (S.view === "models") $("#mbody").innerHTML = html;
+}
+
+// ------------------------------------------------------------------ governance
+async function viewGovernance() {
+  $("#main").innerHTML = topBar("Governance & audit", "Controls that keep the AI accountable: tamper-evident log, thresholds, role permissions, SLA monitor, notifications.") + `<div id="gbody"><div class="loading">Loading…</div></div>`;
+  renderTopPills();
+  let v, health, roles, notes, log, rules;
+  try {
+    [v, health, roles, notes, log, rules] = await Promise.all([api("/audit/verify"), api("/health"), api("/roles"), api("/notifications"), api("/audit?limit=80"), api("/rules")]);
+  } catch (e) { toast(e.message, "err"); return; }
+  S.health = health; S.roles = roles;
+  const th = health.thresholds;
+  const actors = ["SYSTEM", "ANALYST", "SENIOR"];
+  const html = `<div class="grid2"><div class="card"><h3>Audit chain</h3><div id="verify">${verifyHtml(v)}</div><button class="btn sm" style="margin-top:8px" data-act="verify">Verify again</button>`
+    + `<div class="small muted" style="margin-top:6px">Each row stores the hash of the row before it. Editing or deleting any row breaks every hash after it.</div></div>`
+    + `<div class="card"><h3>Routing thresholds</h3><dl class="kv"><dt>Auto-close if risk below</dt><dd>${esc(th.auto_close_max_risk)}</dd><dt>…and confidence at least</dt><dd>${esc(th.auto_close_min_confidence)}</dd><dt>Escalate if risk at least</dt><dd>${esc(th.escalate_min_risk)}</dd><dt>QA sample of auto-closed</dt><dd>${pct(th.qa_sample_rate)}</dd></dl></div>`
+    + `<div class="card"><h3>SLA monitor</h3><div class="small">Cases waiting for a human longer than the SLA are re-escalated to the Head of Fraud Operations (n8n runs this every 5 minutes; you can run it here).</div>`
+    + `<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm" data-act="sla" data-m="15">Check 15-min SLA</button><button class="btn sm" data-act="sla" data-m="0">Demo: treat every open case as late</button></div><div id="slares" class="small" style="margin-top:6px"></div></div>`
+    + `<div class="card"><h3>Demo data</h3><div class="small">Clears cases, audit log and notifications and sets every alert back to NEW. The synthetic bank data stays.</div><button class="btn sm danger" style="margin-top:8px" data-act="reset">Reset demo cases</button></div></div>`
+    + `<div class="card"><h3>Who may do what (RBAC)</h3><div class="scroll"><table class="tbl"><thead><tr><th>Action</th>${actors.map(a => `<th>${a}</th>`).join("")}<th>Autonomous</th><th>Reversible</th></tr></thead><tbody>`
+    + Object.entries(roles.actions).map(([k, a]) => `<tr><td>${esc(a.label)}<div class="mono muted">${esc(k)}</div></td>${actors.map(r => `<td>${a.roles.includes(r) ? '<span class="ok-t">✓</span>' : '<span class="muted">–</span>'}</td>`).join("")}<td>${a.autonomous ? "yes" : "no"}</td><td>${a.reversible ? "yes" : '<span class="warn-t">no</span>'}</td></tr>`).join("")
+    + `</tbody></table></div><div class="small muted" style="margin-top:6px">Decision → actions: ${Object.entries(roles.decision_actions).map(([d, a]) => `<b>${esc(d)}</b> ${esc(a.join(", "))}`).join(" · ")}. Internal Auditor is read-only.</div></div>`
+    + `<div class="grid2"><div class="card"><h3>Notifications (${notes.length})</h3><div class="scroll"><table class="tbl"><tbody>${notes.slice(0, 25).map(n => `<tr><td class="small nw">${when(n.ts)}</td><td><span class="chip">${esc(n.channel)}</span><div class="small">${esc(n.recipient)}</div></td><td class="small">${esc(n.message)}</td></tr>`).join("") || '<tr><td class="muted">none yet</td></tr>'}</tbody></table></div></div>`
+    + `<div class="card"><h3>Fraud rules (upstream engine)</h3><div class="scroll"><table class="tbl"><tbody>${rules.map(r => `<tr><td class="mono">${esc(r.rule_id)}</td><td>${esc(r.name)}<div class="small muted">${esc(r.description)}</div></td><td><span class="chip">${esc(r.severity)}</span></td><td>${esc(r.weight)}</td></tr>`).join("")}</tbody></table></div></div></div>`
+    + `<div class="card"><h3>Audit log (latest ${log.length})</h3><div class="scroll"><table class="tbl"><thead><tr><th>#</th><th>Time</th><th>Case</th><th>Actor</th><th>Action</th><th>Hash</th></tr></thead><tbody>`
+    + log.map(r => `<tr><td>${esc(r.seq)}</td><td class="small nw">${when(r.ts)}</td><td>${r.case_id ? `<a class="mono" href="#case/${esc(r.case_id)}">${esc(r.case_id)}</a>` : ""}</td><td class="small">${esc(r.actor)} <span class="muted">${esc(r.actor_role)}</span></td><td class="small"><b>${esc(r.action)}</b></td><td class="mono muted" title="${esc(r.hash)}">${esc(String(r.hash).slice(0, 12))}…</td></tr>`).join("")
+    + "</tbody></table></div></div>";
+  if (S.view === "governance") $("#gbody").innerHTML = html;
+}
+const verifyHtml = v => v.valid ? `<div class="ok-t"><b>✓ Chain intact</b> · ${esc(v.entries)} entries verified</div>` : `<div class="bad-t"><b>✗ Chain broken</b> at entry #${esc(v.broken_at_seq)} of ${esc(v.entries)}</div>`;
+
+// ------------------------------------------------------------------ architecture
+const DIAGRAMS = {"00_systems_thinking_loops.png": "Stage 1 · Systems thinking: causal loops", "01_as_is_process.png": "Stage 2 · AS-IS manual process",
+  "02_to_be_agentic_process.png": "Stage 2 · TO-BE agentic process (A / H / E)", "03_technical_governance_architecture.png": "Stage 2 · Technical & governance architecture"};
+async function viewArchitecture() {
+  $("#main").innerHTML = topBar("Architecture", "Diagrams from docs/diagrams. Click one to open it full size.") + `<div id="abody"><div class="loading">Loading…</div></div>`;
+  renderTopPills();
+  let names;
+  try { names = await api("/ui/diagrams"); } catch (e) { toast(e.message, "err"); return; }
+  if (S.view === "architecture") $("#abody").innerHTML = names.map(n => `<div class="card"><h3>${esc(DIAGRAMS[n] || n)}</h3><a href="/ui/file/diagram/${encodeURIComponent(n)}" target="_blank" rel="noopener"><img class="fig" loading="lazy" src="/ui/file/diagram/${encodeURIComponent(n)}" alt="${esc(DIAGRAMS[n] || n)}"></a></div>`).join("") || `<div class="card muted">No diagrams found.</div>`;
+}
+
+// ------------------------------------------------------------------ router + actions
+function route() {
+  const h = location.hash.slice(1) || "inbox";
+  let view = h;
+  if (h.startsWith("case/")) { view = "cases"; S.caseId = decodeURIComponent(h.slice(5)); }
+  else if (h === "cases") { S.caseId = null; S.case = null; }
+  if (!["inbox", "cases", "models", "governance", "architecture"].includes(view)) view = "inbox";
+  if (view === "cases" && S.view === "cases" && $("#cdetail")) {   // stay on the page, just swap the detail
+    renderCaseList();
+    if (S.caseId) loadCase(S.caseId);
+    return;
+  }
+  S.view = view;
+  document.querySelectorAll("#nav a").forEach(a => a.classList.toggle("on", a.dataset.v === view));
+  ({inbox: viewInbox, cases: viewCases, models: viewModels, governance: viewGovernance, architecture: viewArchitecture})[view]();
+}
+
+let resetArmed = 0;
+const ACT = {
+  refresh: () => loadInboxData(),
+  run: t => startRun(t.dataset.id),
+  runall: () => runAllNew(),
+  dismiss: t => { S.runs = S.runs.filter(r => r.job !== t.dataset.job); renderRuns(); },
+  queue: t => { S.queue = t.dataset.q; renderCaseList(); },
+  tab: t => { S.caseTab = t.dataset.t; renderCase(); },
+  pick: t => { const r = $("#reason"); S.pick = {case: S.case.case_id, decision: t.dataset.d, reason: r ? r.value : ""}; renderCase(); },
+  decide: t => submitDecision(t.dataset.d),
+  "decide-try": () => submitDecision(S.case.decision || "ESCALATE"),
+  verify: async () => { try { $("#verify").innerHTML = verifyHtml(await api("/audit/verify")); toast("Audit chain verified", "ok"); } catch (e) { toast(e.message, "err"); } },
+  sla: async t => {
+    try { const r = await api("/cases/sla/check?minutes=" + t.dataset.m, {method: "POST"}); $("#slares").textContent = `${r.breaches} case(s) past SLA${r.cases.length ? ": " + r.cases.join(", ") : ""}. New breaches are notified once and audited.`; }
+    catch (e) { toast(e.message, "err"); }
+  },
+  reset: async t => {
+    if (Date.now() - resetArmed > 4000) { resetArmed = Date.now(); t.textContent = "Click again to confirm reset"; setTimeout(() => { t.textContent = "Reset demo cases"; }, 4000); return; }
+    resetArmed = 0;
+    try { await api("/admin/reset", {method: "POST"}); S.runs = []; S.lastDecision = null; toast("Demo cases cleared", "ok"); viewGovernance(); } catch (e) { toast(e.message, "err"); }
+  },
+};
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-act]");
+  if (!t || t.disabled) return;
+  if (t.tagName === "A") e.preventDefault();
+  const fn = ACT[t.dataset.act];
+  if (fn) fn(t, e);
+});
+document.addEventListener("input", e => { if (e.target.id === "reason" && S.case) S.pick = {case: S.case.case_id, decision: (S.pick && S.pick.case === S.case.case_id && S.pick.decision) || ($(".dopt.on") || {}).dataset?.d, reason: e.target.value}; });
+window.addEventListener("hashchange", route);
+
+(async function init() {
+  try {
+    [S.models, S.status, S.roles, S.health] = await Promise.all([api("/models"), api("/ui/status"), api("/roles"), api("/health")]);
+  } catch (e) {
+    $("#main").innerHTML = `<div class="card bad-t">Cannot reach the API: ${esc(e.message)}</div>`;
+    return;
+  }
+  if (window.innerWidth < 900) $("#settings").removeAttribute("open");
+  renderSettings();
+  bindSettings();
+  route();
+  setInterval(() => { if (!document.hidden) refreshStatus(); }, 15000);
+})();
+</script>
+</body>
+</html>

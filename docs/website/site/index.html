@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"></head><body>
+<title>FraudOps Copilot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: casework dossier. A sticky index rail of sections, a case-ticket hero, then evidence-style sections tagged like exhibits. */
+:root{
+  --bg:#f5f7fa; --surface:#ffffff; --ink:#132033; --ink-2:#44546b; --line:#d6dde7; --accent:#1d4e89; --accent-soft:#e2ecf8;
+  --a:#1f7a4d; --a-soft:#e3f4ea; --h:#9a6400; --h-soft:#fdf1d8; --e:#a3242b; --e-soft:#fbe3e4; --x:#4a4f8c; --x-soft:#e7e8f7;
+  --paper:#ffffff;
+  --display:"Archivo","Arial Narrow",Arial,sans-serif; --body:"IBM Plex Sans","Segoe UI",Arial,sans-serif; --mono:"IBM Plex Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0f1622; --surface:#172131; --ink:#e6ecf4; --ink-2:#a3b1c4; --line:#2b3a50; --accent:#8db8ec; --accent-soft:#1d2d44;
+  --a:#6fcf9c; --a-soft:#163626; --h:#f0bd5c; --h-soft:#3a2c10; --e:#f08a90; --e-soft:#3c1a1d; --x:#a9adf0; --x-soft:#25274a; --paper:#f4f6f9; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0f1622; --surface:#172131; --ink:#e6ecf4; --ink-2:#a3b1c4; --line:#2b3a50; --accent:#8db8ec; --accent-soft:#1d2d44;
+  --a:#6fcf9c; --a-soft:#163626; --h:#f0bd5c; --h-soft:#3a2c10; --e:#f08a90; --e-soft:#3c1a1d; --x:#a9adf0; --x-soft:#25274a; --paper:#f4f6f9; color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.6;margin:0}
+a{color:var(--accent)} a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:20px}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+header.top .wrap{display:flex;align-items:center;gap:20px;padding-block:10px;overflow-x:auto}
+.brand{font-family:var(--display);font-weight:800;font-stretch:80%;font-size:20px;letter-spacing:.2px;white-space:nowrap}
+.brand span{color:var(--accent)}
+nav.idx{display:flex;gap:14px;font-size:13.5px;white-space:nowrap}
+nav.idx a{color:var(--ink-2);text-decoration:none} nav.idx a:hover{color:var(--accent)}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.1;margin:0}
+h1{font-size:clamp(34px,5.4vw,60px);font-weight:800;font-stretch:78%;letter-spacing:-.5px}
+h2{font-size:clamp(26px,3.4vw,38px);font-weight:750;font-stretch:82%}
+h3{font-size:19px;font-weight:700;font-stretch:90%}
+.eyebrow{font-family:var(--mono);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
+p{max-width:68ch;margin:0}
+.muted{color:var(--ink-2)}
+section{padding-block:56px;border-top:1px solid var(--line)}
+section .head{display:flex;flex-direction:column;gap:10px;margin-bottom:26px}
+.exhibit{font-family:var(--mono);font-size:12.5px;color:var(--accent);letter-spacing:.06em}
+
+/* hero */
+.hero{padding-block:48px 40px;display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center}
+.hero .lede{font-size:18.5px;color:var(--ink-2);margin-top:16px}
+.facts{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:22px;font-family:var(--mono);font-size:13.5px;color:var(--ink-2)}
+.facts b{color:var(--ink);font-weight:500}
+.ticket{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 18px 16px;box-shadow:0 10px 30px -18px rgba(10,30,60,.45);min-width:0}
+.ticket .row{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}
+.ticket .id{font-family:var(--mono);font-size:13px;color:var(--ink-2)}
+.ticket .title{font-weight:600;margin:6px 0 10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-family:var(--mono);font-size:11.5px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--ink-2);background:var(--bg)}
+.chip.crit{border-color:var(--e);color:var(--e);background:var(--e-soft)}
+.steps{list-style:none;padding:0;margin:14px 0 12px;display:grid;gap:7px}
+.steps li{display:grid;grid-template-columns:22px 1fr auto;gap:8px;align-items:center;font-size:14px}
+.steps .ok{width:18px;height:18px;border-radius:50%;background:var(--a-soft);color:var(--a);display:grid;place-items:center;font-size:11px;font-weight:700}
+.steps .t{font-family:var(--mono);font-size:12px;color:var(--ink-2)}
+.stamp{display:flex;align-items:center;gap:12px;border-top:1px dashed var(--line);padding-top:12px}
+.route{font-family:var(--display);font-weight:800;font-stretch:80%;font-size:15px;letter-spacing:.04em;padding:4px 10px;border-radius:6px;border:2px solid currentColor;transform:rotate(-2deg)}
+.r-A{color:var(--a);background:var(--a-soft)} .r-H{color:var(--h);background:var(--h-soft)} .r-E{color:var(--e);background:var(--e-soft)} .r-X{color:var(--x);background:var(--x-soft)}
+.stamp p{font-size:13.5px;color:var(--ink-2)}
+
+/* generic */
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;min-width:0}
+.panel h3{margin-bottom:8px}
+.panel p,.panel li{font-size:15px}
+.stat{font-family:var(--display);font-weight:800;font-stretch:78%;font-size:40px;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums}
+figure{margin:0;min-width:0}
+figure .frame{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:10px;overflow-x:auto}
+figure img{display:block;width:100%;height:auto;border-radius:4px}
+figcaption{font-size:13.5px;color:var(--ink-2);margin-top:8px}
+figcaption b{font-family:var(--mono);font-weight:500;color:var(--ink)}
+.tall .frame{max-height:880px;overflow-y:auto}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-2);font-weight:500;background:var(--bg)}
+tr:last-child td{border-bottom:0}
+td.num{font-variant-numeric:tabular-nums;text-align:right}
+.tag{display:inline-block;font-family:var(--mono);font-size:11.5px;font-weight:500;padding:1px 7px;border-radius:5px}
+ol.flow{padding-left:20px;margin:0;display:grid;gap:6px;font-size:15px}
+.legend{display:flex;flex-wrap:wrap;gap:10px 18px;font-size:14px;margin-top:14px}
+.legend span{display:flex;gap:8px;align-items:center}
+.note{border-left:3px solid var(--h);background:var(--h-soft);padding:12px 14px;border-radius:0 8px 8px 0;font-size:14.5px}
+.pending{border:1.5px dashed var(--line);border-radius:10px;padding:20px;background:var(--surface)}
+.bars{display:grid;gap:10px}
+.bar{display:grid;grid-template-columns:150px 1fr 56px;gap:10px;align-items:center;font-size:14px}
+.bar .track{height:12px;background:var(--bg);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.bar .fill{height:100%;background:var(--accent)}
+.bar .v{font-family:var(--mono);font-size:13px;text-align:right}
+footer{padding-block:36px;border-top:1px solid var(--line);font-size:13.5px;color:var(--ink-2)}
+@media (max-width:900px){.hero{grid-template-columns:1fr}.grid3{grid-template-columns:1fr 1fr}}
+@media (max-width:620px){.grid2,.grid3{grid-template-columns:1fr}.bar{grid-template-columns:100px 1fr 48px}section{padding-block:40px}}
+@media (prefers-reduced-motion:no-preference){.route{transition:transform .3s}.ticket:hover .route{transform:rotate(0)}}
+</style>
+
+<header class="top"><div class="wrap">
+  <div class="brand">FraudOps <span>Copilot</span></div>
+  <nav class="idx" aria-label="Sections">
+    <a href="#problem">Problem</a><a href="#thinking">Thinking &amp; research</a><a href="#process">Process</a><a href="#architecture">Architecture</a>
+    <a href="#poc">Proof of concept</a><a href="#models">Model comparison</a><a href="#guardrails">Guardrails</a><a href="#expert">Expert</a>
+    <a href="#limits">Limitations</a><a href="#video">Video</a>
+  </nav>
+</div></header>
+
+<main class="wrap">
+  <div class="hero">
+    <div>
+      <div class="eyebrow">Agentic AI Digital Transformation Hackathon · Banking Challenge</div>
+      <h1 style="margin-top:12px">Fraud alerts investigated in seconds, decided by people.</h1>
+      <p class="lede">A governed agentic AI that redesigns how bank fraud alerts are investigated. Four specialised agents assemble and weigh the evidence. A deterministic policy closes only clear false positives, sends ambiguous cases to an analyst and escalates high-risk cases to a senior investigator. Every step is audited.</p>
+      <div class="facts"><span><b>4</b> agents</span><span><b>3</b> n8n workflows</span><span><b>13</b> synthetic test cases</span><span><b>3+</b> open-weight models compared</span><span><b>14</b> risks mapped to controls</span><span><b>25</b> automated tests</span></div>
+    </div>
+    <div class="ticket" aria-label="Example case">
+      <div class="row"><span class="id">ALT-3001 · CASE-3001</span><span class="id">IMPS · ₹4,80,000 · 02:14 IST</span></div>
+      <div class="title">Possible account takeover: large transfer to a payee added 12 minutes earlier</div>
+      <div class="chips"><span class="chip">R04 SIM swap</span><span class="chip">R13 password reset</span><span class="chip">R10 emulator</span><span class="chip crit">R05 mule watchlist</span><span class="chip">R07 96% balance drain</span></div>
+      <ul class="steps">
+        <li><span class="ok">✓</span>Evidence tool: 18 facts, 15 rules, PII pseudonymised<span class="t">E1–E18</span></li>
+        <li><span class="ok">✓</span>Transaction Analysis Agent<span class="t">anomaly 100</span></li>
+        <li><span class="ok">✓</span>Customer Behaviour Agent<span class="t">4 takeover signals</span></li>
+        <li><span class="ok">✓</span>Risk &amp; Policy Agent<span class="t">CRITICAL · ATO</span></li>
+        <li><span class="ok">✓</span>Recommendation Agent<span class="t">ESCALATE</span></li>
+      </ul>
+      <div class="stamp"><span class="route r-E">[E] ESCALATED</span><p>L1 analyst blocked; Senior Investigator approves card block and STR draft. 15-minute SLA running.</p></div>
+    </div>
+  </div>
+
+  <section id="problem">
+    <div class="head"><span class="exhibit">EXHIBIT 1 · PROBLEM STATEMENT</span><h2>Governed Agentic AI for Banking Fraud Investigation and Response</h2>
+      <p class="muted">Banks process large volumes of digital transactions and fraud alerts. To decide whether a case should proceed, be verified, held or escalated, an analyst combines transaction behaviour, customer context, device and channel signals, fraud rules and other evidence. The challenge is to redesign this with governed Agentic AI while keeping appropriate human decision authority.</p></div>
+    <div class="grid3">
+      <div class="panel"><div class="stat">23,953</div><p class="muted" style="margin-top:8px">bank-fraud cases reported in FY25 (RBI Annual Report 2024-25)</p></div>
+      <div class="panel"><div class="stat">56.5%</div><p class="muted" style="margin-top:8px">of cases were digital-payment (card / internet) frauds: 13,516 cases, ₹520 crore</p></div>
+      <div class="panel"><div class="stat">Minutes</div><p class="muted" style="margin-top:8px">is how long push payments take to leave the bank, while alerts wait in queues and analysts check 6–8 systems by hand</p></div>
+    </div>
+  </section>
+
+  <section id="thinking">
+    <div class="head"><span class="exhibit">EXHIBIT 2 · STRUCTURED THINKING, STOIC &amp; RESEARCH</span><h2>The bottleneck is investigation, not detection</h2>
+      <p class="muted">Critical thinking (elements of thought, 5 Whys) and systems thinking (iceberg, causal loops, leverage points) led us to place agents after the bank's rules engine rather than replacing it.</p></div>
+    <div class="grid2">
+      <div class="panel"><h3>5 Whys</h3><ol class="flow"><li>Money leaves before the alert is actioned.</li><li>Analysts are queued behind many low-risk alerts.</li><li>Each alert needs many minutes of manual look-ups.</li><li>Evidence sits in siloed systems with no case view.</li><li>FRM tools detect, but don't investigate.</li></ol></div>
+      <div class="panel"><h3>STOIC prompt refinement</h3><p><b>S</b>ituation · <b>T</b>ask · <b>O</b>bjective · <b>I</b>nformation · <b>C</b>onstraints.</p>
+        <ul style="margin:8px 0 0 18px;padding:0"><li><b>v1</b>: "Is it fraud? Explain." Free text, no evidence trail, raw remarks mixed into instructions.</li><li><b>v2</b>: S-T-O plus a JSON reply. Structured, but claims not traceable.</li><li><b>v3</b>: full STOIC per agent with numbered facts E1…En, mandatory citations, risk scale, bank policy, and remarks declared untrusted data.</li></ul></div>
+    </div>
+    <figure style="margin-top:22px"><div class="frame"><img src="img/00_systems_thinking_loops.png" alt="Causal loop diagram: rules, alert volume, backlog, delay, losses; false positives and friction; learning loop; three leverage points" loading="lazy"></div>
+      <figcaption><b>Figure 1</b> · Systems thinking: the fatigue spiral (R1), the friction spiral (R2), the weak learning loop (B1) and our three leverage points.</figcaption></figure>
+    <div class="tablewrap" style="margin-top:22px"><table>
+      <thead><tr><th>Existing solution</th><th>What it does</th><th>What we take from it</th></tr></thead>
+      <tbody>
+        <tr><td>NICE Actimize X-Sight ActOne (InvestigateAI)</td><td>Agentic investigation plans from policies; claims 50%+ less investigation time</td><td>Evidence traceable to data points</td></tr>
+        <tr><td>Feedzai Farol</td><td>Embedded agent: alert summaries, rule analysis, SAR drafting; analysts keep authority</td><td>Agent assists, human decides</td></tr>
+        <tr><td>Unit21 AI agents</td><td>Investigation and detection agents; optional auto-closure with audit trail and human sampling</td><td>QA sampling of autonomous closures</td></tr>
+        <tr><td>RBIH MuleHunter.AI</td><td>ML mule-account detection from 19 behaviour patterns; 23 banks per RTI (Dec 2025)</td><td>Mule watchlist and mule-pattern rule as evidence</td></tr>
+      </tbody></table></div>
+  </section>
+
+  <section id="process">
+    <div class="head"><span class="exhibit">EXHIBIT 3 · PROCESS MAPPING</span><h2>From swivel-chair look-ups to a governed agent pipeline</h2>
+      <p class="muted">Today an L1 analyst opens 6–8 systems per alert, writes free-text notes and escalates by e-mail; L2 then re-collects the same evidence. In the TO-BE process every activity is marked by who acts.</p>
+      <div class="legend"><span><i class="tag r-A">A</i>Autonomous</span><span><i class="tag r-H">H</i>Human-in-the-Loop</span><span><i class="tag r-E">E</i>Escalation</span><span><i class="tag r-X">X</i>Exception route</span></div></div>
+    <div class="grid2">
+      <figure class="tall"><div class="frame"><img src="img/01_as_is_process.png" alt="AS-IS fraud investigation process with delays, bottlenecks and exceptions" loading="lazy"></div><figcaption><b>Figure 2</b> · AS-IS: actors, systems, hand-offs, delays, bottlenecks and exceptions.</figcaption></figure>
+      <figure class="tall"><div class="frame"><img src="img/02_to_be_agentic_process.png" alt="TO-BE agentic process with A, H and E marked activities" loading="lazy"></div><figcaption><b>Figure 3</b> · TO-BE: orchestrator, four agents, routing policy, human approvals, escalation and exception paths.</figcaption></figure>
+    </div>
+  </section>
+
+  <section id="architecture">
+    <div class="head"><span class="exhibit">EXHIBIT 4 · ARCHITECTURE</span><h2>Agents recommend. A policy routes. People decide.</h2>
+      <p class="muted">Seven layers: a light web UI, n8n orchestration, four agents, open-weight models behind one OpenAI-compatible gateway, tools and synthetic data, cross-cutting guardrails, and human oversight.</p></div>
+    <figure><div class="frame"><img src="img/03_technical_governance_architecture.png" alt="Technical and governance architecture in seven layers" loading="lazy"></div><figcaption><b>Figure 4</b> · Technical &amp; governance architecture.</figcaption></figure>
+  </section>
+
+  <section id="poc">
+    <div class="head"><span class="exhibit">EXHIBIT 5 · PROOF OF CONCEPT</span><h2>One integrated application, triggered from the UI</h2>
+      <p class="muted">The web UI calls the n8n webhook. n8n calls the evidence tool, the four agents and the routing policy, then branches A / H / E / X. Decisions go back through a second workflow that enforces role-based approval.</p></div>
+    <div class="grid2">
+      <figure><div class="frame"><img src="img/n8n_wf01_investigation.png" alt="n8n investigation workflow canvas" loading="lazy"></div><figcaption><b>Figure 5</b> · n8n WF-01: webhook → evidence → agents 1–4 with validity checks → routing policy → A/H/E/X, with error outputs to a technical-exception path.</figcaption></figure>
+      <figure><div class="frame"><img src="img/n8n_wf02_hitl.png" alt="n8n human decision workflow canvas" loading="lazy"></div><figcaption><b>Figure 6</b> · n8n WF-02: human decision validated (RBAC, override reason) before outcome actions run.</figcaption></figure>
+      <figure><div class="frame"><img src="img/ui_alert_inbox.png" alt="Alert inbox screen" loading="lazy"></div><figcaption><b>Figure 7</b> · Alert inbox: each agent ticks off live, then the routed result appears.</figcaption></figure>
+      <figure><div class="frame"><img src="img/ui_cases_decisions.png" alt="Case queue and decision screen" loading="lazy"></div><figcaption><b>Figure 8</b> · Case queues: AI recommendation, routing reason, the investigator's decision with role-based actions, and tabs for agent trace, evidence, guardrails and audit.</figcaption></figure>
+    </div>
+    <h3 style="margin:30px 0 12px">Test cases</h3>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Case</th><th>Type</th><th>Scenario</th><th>Expected</th><th>Route</th></tr></thead>
+      <tbody id="cases"></tbody></table></div>
+  </section>
+
+  <section id="models">
+    <div class="head"><span class="exhibit">EXHIBIT 6 · OPEN-MODEL COMPARISON</span><h2>Same cases, same prompts, same policy</h2>
+      <p class="muted">Every model receives the same 13 evidence packs, STOIC prompts v3.1, output schemas, routing policy and thresholds at temperature 0. Metrics: decision and route accuracy, escalation recall and precision, false-positive rate, fraud recall, hallucination rate, explanation quality, structured-output compliance, task completion, latency, and a prompt-injection stress test.</p></div>
+    <div id="bench"></div>
+  </section>
+
+  <section id="guardrails">
+    <div class="head"><span class="exhibit">EXHIBIT 7 · GUARDRAILS &amp; GOVERNANCE</span><h2>Risk → guardrail → requirement → implementation</h2>
+      <p class="muted">Primary framework: NIST AI RMF 1.0, cross-referenced to ISO/IEC 42001 and the RBI FREE-AI framework (2025). Selected rows below; the full table of 14 risks is in the report.</p></div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Risk</th><th>Guardrail</th><th>Requirement</th><th>In the PoC</th></tr></thead>
+      <tbody>
+        <tr><td>Customer PII sent to a model provider</td><td>Pseudonymisation, PII-leak check, synthetic data</td><td>NIST MEASURE (privacy) · ISO 42001 A.7 · DPDP</td><td><code>redact_pii</code>, <code>pii_leak_check</code></td></tr>
+        <tr><td>Hallucinated evidence</td><td>Numbered facts, mandatory citations, grounding check; flagged cases can't auto-close</td><td>NIST MEASURE (valid &amp; reliable) · FREE-AI understandable by design</td><td><code>grounding_check</code></td></tr>
+        <tr><td>Prompt injection in payment remarks</td><td>Injection screen, untrusted-data rule, rules-score floor</td><td>NIST MEASURE (security &amp; resilience)</td><td><code>screen_untrusted_text</code>, ALT-3004</td></tr>
+        <tr><td>Unsafe autonomous action</td><td>Agents only recommend; deterministic routing; allow-list; L2-only blocking</td><td>NIST MAP (human oversight) · ISO 42001 A.9 · FREE-AI people first</td><td><code>decide_route</code>, HTTP 409 on bypass</td></tr>
+        <tr><td>Wrong person approves</td><td>Roles L1 / L2 / Auditor; reason required for overrides</td><td>NIST GOVERN (roles) · ISO 27001 access control</td><td><code>human_decision</code>, HTTP 403</td></tr>
+        <tr><td>No audit trail</td><td>SHA-256 hash-chained log of every agent call, route, decision and action</td><td>ISO 42001 event logs · FREE-AI assurance</td><td><code>/audit/verify</code></td></tr>
+      </tbody></table></div>
+  </section>
+
+  <section id="expert">
+    <div class="head"><span class="exhibit">EXHIBIT 8 · INDUSTRY EXPERT VALIDATION</span><h2>Validated by a fraud-risk practitioner</h2></div>
+    <div class="pending" id="expert-box">
+      <p><b>Interview pending faculty approval.</b> The expert will review the AS-IS and TO-BE processes, the architecture, the working PoC, the human-in-the-loop controls and the guardrails, and answer five mandatory questions on complexity, dependencies, speed, information volume and ambiguous cases. Their comments on feasibility, risks, usefulness and improvements will appear here with the transcript.</p>
+    </div>
+  </section>
+
+  <section id="limits">
+    <div class="head"><span class="exhibit">EXHIBIT 9 · LIMITATIONS &amp; NEXT STEPS</span><h2>What this proof of concept does not prove yet</h2></div>
+    <div class="grid2">
+      <div class="panel"><h3>Limitations</h3><ul style="margin:0 0 0 18px;padding:0"><li>13 synthetic cases show relative model behaviour, not production accuracy.</li><li>The grounding check is keyword-based, a guardrail rather than proof.</li><li>Explanation quality is scored by a rubric, not by experts.</li><li>Holds, blocks, SMS and STR filing are simulated.</li></ul></div>
+      <div class="panel"><h3>Next steps</h3><ul style="margin:0 0 0 18px;padding:0"><li>Shadow-mode pilot on historical, anonymised alerts.</li><li>Self-hosted open model so data stays in the bank.</li><li>Segment-level false-positive monitoring for fairness.</li><li>A rule-tuning agent that learns from analyst dispositions.</li></ul></div>
+    </div>
+  </section>
+
+  <section id="video">
+    <div class="head"><span class="exhibit">EXHIBIT 10 · DEMONSTRATION</span><h2>Final demonstration video</h2></div>
+    <div class="pending" id="video-box"><p><b>Video link to be added</b> (10–15 minutes, every team member presenting).</p></div>
+  </section>
+</main>
+<footer><div class="wrap">FraudOps Copilot · student project for the Agentic AI Digital Transformation Hackathon, Banking Challenge. All customer, transaction and device data on this site is synthetic. Team: <span id="team">[team member names]</span>.</div></footer>
+
+<script id="bench-data" type="application/json">null</script>
+<script>
+const CASES = [
+ ["ALT-1001","Normal","Festive electronics purchase, card present, home city","PROCEED","A"],
+ ["ALT-1002","Normal","Rent to a long-standing payee after lease revision","PROCEED","A"],
+ ["ALT-1003","Normal","Hotel bill on a domestic trip, flight booked earlier","PROCEED","A"],
+ ["ALT-1004","Normal","Six routine bill payments in six minutes","PROCEED","A"],
+ ["ALT-2001","Ambiguous","New phone, new supplier payee, ₹45,000","VERIFY","H"],
+ ["ALT-2002","Ambiguous","Senior citizen sends FD proceeds citing a 'CBI legal case'","HOLD","E"],
+ ["ALT-2003","Exception","Customer master record unavailable","—","X"],
+ ["ALT-2004","Ambiguous","2 a.m. foreign subscription, 3-D Secure passed","PROCEED","A"],
+ ["ALT-2005","Ambiguous","Impossible travel for a frequent traveller, known payee","VERIFY","H"],
+ ["ALT-3001","High-risk","SIM swap, password reset, emulator, mule payee, 96% drain","ESCALATE","E"],
+ ["ALT-3002","High-risk","Card testing then a ₹74,999 card-not-present attempt","ESCALATE","E"],
+ ["ALT-3003","High-risk","Student account used as a money mule","ESCALATE","E"],
+ ["ALT-3004","High-risk","New device, OTP failures, new payee, prompt injection in remarks","ESCALATE","E"]];
+document.getElementById("cases").innerHTML = CASES.map(c =>
+  `<tr><td><code>${c[0]}</code></td><td>${c[1]}</td><td>${c[2]}</td><td>${c[3]}</td><td><span class="tag r-${c[4]}">${c[4]}</span></td></tr>`).join("");
+
+const bench = (() => { try { return JSON.parse(document.getElementById("bench-data").textContent); } catch (e) { return null; } })();
+const el = document.getElementById("bench");
+if (!bench || !bench.models || !bench.models.length) {
+  el.innerHTML = `<div class="pending"><p><b>Benchmark results will be published here after the evaluation run.</b> Models: Google Gemma 4 31B (via Google AI Studio), OpenAI gpt-oss 120B and Alibaba Qwen 3.8 27B (via Cerebras), all open-weight. Gemini Flash may appear as a closed reference, reported separately.</p></div>`;
+} else {
+  const M = bench.models;
+  const rows = [["Acceptable decision accuracy","acceptable_accuracy",true],["Exact decision accuracy","decision_accuracy",true],["Route accuracy (A/H/E/X)","route_accuracy",true],
+    ["Escalation recall","escalation_recall",true],["Escalation precision","escalation_precision",true],["False-positive rate","false_positive_rate",true],
+    ["Fraud recall","fraud_recall",true],["Hallucination rate","hallucination_rate",true],["Explanation quality (0–5)","explanation_quality",false],
+    ["Valid JSON first try","schema_first_try",true],["Task completion","task_completion",true],["Avg latency per case (s)","avg_latency_s",false],
+    ["Fooled by raw injection","injection_stress_fooled",false],["Composite score (0–100)","composite_score",false]];
+  const fmt = (v, pct) => v === null || v === undefined ? "—" : typeof v === "boolean" ? (v ? "yes" : "no") : pct ? Math.round(v * 100) + "%" : v;
+  const max = Math.max(...M.map(m => m.composite_score || 0), 1);
+  el.innerHTML = `<div class="tablewrap"><table><thead><tr><th>Metric</th>${M.map(m => `<th>${m.model}${m.open_weight === false ? " (closed reference)" : ""}</th>`).join("")}</tr></thead><tbody>
+    ${rows.map(([l, k, p]) => `<tr><td>${l}</td>${M.map(m => `<td class="num">${fmt(m[k], p)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>
+    <div class="panel" style="margin-top:18px"><h3>Composite score</h3><div class="bars">${M.map(m => `<div class="bar"><span>${m.model}</span><div class="track"><div class="fill" style="width:${100 * (m.composite_score || 0) / max}%"></div></div><span class="v">${m.composite_score}</span></div>`).join("")}</div>
+    <p class="muted" style="margin-top:10px;font-size:13.5px">Run ${bench.run_id} · prompt ${bench.prompt_version} · ${bench.cases} cases.</p></div>`;
+}
+</script>
+
+</body></html>

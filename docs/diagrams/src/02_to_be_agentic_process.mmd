@@ -1,0 +1,49 @@
+flowchart TB
+    start(["Fraud alert raised by FRM rules engine"]) --> w1
+    subgraph ORCH["🔁 n8n Orchestrator: workflow 01 (webhook)"]
+        w1["[A] Open case · record model & prompt version"]
+        w2["[A] Tool: gather evidence from 8 sources,<br/>run 15 fraud rules, pseudonymise PII,<br/>screen remarks for prompt injection"]
+        d0{"Evidence<br/>complete?"}
+        g1["[A] Agent 1: Transaction Analysis<br/>amount · channel · time · geo · velocity · balance"]
+        g2["[A] Agent 2: Customer Behaviour<br/>takeover · scam · mule indicators"]
+        g3["[A] Agent 3: Risk & Policy<br/>risk score · band · typology · policy P1–P7"]
+        g4["[A] Agent 4: Recommendation<br/>PROCEED / VERIFY / HOLD / ESCALATE + rationale"]
+        dv{"Valid JSON<br/>(schema)?"}
+        rp["[A] Guardrails: Routing policy (deterministic)<br/>rules-score floor · grounding check ·<br/>confidence · injection flag · thresholds"]
+        sw{"Route"}
+    end
+    w1 --> w2 --> d0
+    d0 -- "yes" --> g1 --> g2 --> g3 --> g4 --> dv
+    d0 -- "no: source missing" --> X
+    dv -- "no: after 1 repair retry" --> X
+    dv -- "yes" --> rp --> sw
+    sw -- "PROCEED · risk&lt;30 · conf≥0.8 · no flags" --> A1
+    sw -- "VERIFY / HOLD / flags / medium risk" --> H1
+    sw -- "ESCALATE · risk≥70 · critical rule" --> E1
+    A1["[A] Auto-close as false positive<br/>(only reversible, low-risk action)"] --> QA{"10% QA<br/>sample?"}
+    QA -- "yes" --> H0["[H] Analyst QA review<br/>confirm or reopen"]
+    QA -- "no" --> OUT
+    H1["[H] L1 Analyst reviews agent trace & evidence<br/>approve or override (reason mandatory)"] --> HD{"Decision"}
+    HD -- "PROCEED / VERIFY / HOLD" --> ACT1["[A] Execute permitted action<br/>release · step-up verification · 24h hold"]
+    HD -- "ESCALATE (refer)" --> E1
+    E1["[E] Notify L2 senior investigator<br/>15-min SLA starts"] --> E2["[E] L2 decides (Senior role only)<br/>block card / freeze debits"]
+    E2 --> ACT2["[A] Execute protective actions<br/>STR draft to Compliance · advise 1930"]
+    E2 --> COMPL["[H] Compliance reviews & files STR (FIU-IND)"]
+    X["[E] Exception queue<br/>ops supervisor notified"] --> XH["[H] Analyst handles manually<br/>reason mandatory"]
+    SLA["[E] n8n workflow 03: SLA monitor (every 5 min)<br/>undecided cases → Head of Fraud Ops"] -.-> E1
+    SLA -.-> H1
+    ACT1 --> OUT
+    ACT2 --> OUT
+    H0 --> OUT
+    XH --> OUT
+    OUT(["Outcome recorded"]) --> AUD[("[A] Hash-chained audit trail<br/>every agent call, route, decision, action")]
+    classDef auto fill:#e3f4ea,stroke:#1f7a4d,color:#0f3d26
+    classDef human fill:#fdf1d8,stroke:#b07400,color:#4d3300
+    classDef esc fill:#fbe3e4,stroke:#a3242b,color:#5c1015
+    classDef dec fill:#ffffff,stroke:#5b6b80
+    class w1,w2,g1,g2,g3,g4,rp,A1,ACT1,ACT2,AUD auto
+    class H0,H1,COMPL,XH human
+    class E1,E2,X,SLA esc
+    class d0,dv,sw,QA,HD dec
+    legend["LEGEND  [A] Autonomous (green) · [H] Human-in-the-Loop (amber) · [E] Escalation (red)<br/>Agents only recommend; no irreversible action runs without a human"]:::note
+    classDef note fill:#ffffff,stroke:#999,stroke-dasharray:4 3,color:#333

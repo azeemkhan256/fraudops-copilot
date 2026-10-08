@@ -1,0 +1,501 @@
+{
+  "id": "HitlDecision0002",
+  "name": "HITL Decision Handler",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "fraud-decision",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "9841012f-4e0d-42e1-92da-472433dc15b1",
+      "name": "Decision Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "ed7597d1-079e-40f4-ae92-1f763a4aaac8"
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "04c17a16-dcf9-4bd9-8427-3842372f8617",
+              "name": "api_base",
+              "value": "={{ $json.body.api_base || 'http://127.0.0.1:8000' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "dced8d4d-38fc-4481-ace2-2e94290652be",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.api_base }}/cases/decision",
+        "options": {
+          "timeout": 900000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ case_id: $('Decision Webhook').first().json.body.case_id, decision: $('Decision Webhook').first().json.body.decision, investigator: $('Decision Webhook').first().json.body.investigator, role: $('Decision Webhook').first().json.body.role, reason: $('Decision Webhook').first().json.body.reason || '' }) }}"
+      },
+      "id": "588241e5-659d-4cea-a7dd-d24054d32dc3",
+      "name": "Validate Role & Record Decision",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "646928ae-c12f-44ef-9c48-87f5f0bc6774",
+              "leftValue": "={{ $json.ok === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "6dacc9dc-0950-4385-b679-2e363e4056e5",
+      "name": "Decision accepted?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "90978a40-f22c-4982-95dd-9fc01a37030b",
+                    "leftValue": "={{ $json.human_decision }}",
+                    "rightValue": "PROCEED",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "PROCEED"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "814a2bf9-48f6-4e9e-be9d-cbc7edcf752c",
+                    "leftValue": "={{ $json.human_decision }}",
+                    "rightValue": "VERIFY",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "VERIFY"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "ed958ee0-e4e0-490f-8af8-019063617eb2",
+                    "leftValue": "={{ $json.human_decision }}",
+                    "rightValue": "HOLD",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "HOLD"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "0edeb9c3-1e32-4809-b876-40cbd7777816",
+                    "leftValue": "={{ $json.human_decision }}",
+                    "rightValue": "ESCALATE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ESCALATE"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fbd65955-a981-4f25-bff3-db484f487e70",
+      "name": "Outcome",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        880,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5a53647a-0afc-442e-84f1-0fd900135c21",
+              "name": "outcome",
+              "value": "Transaction released; alert closed as genuine.",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "935da2c6-8ff0-4c5d-942f-936d8dc982ca",
+      "name": "Release Transaction & Close Alert",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1120,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "24d946f6-d45b-4157-954a-16d329f79034",
+              "name": "outcome",
+              "value": "Verification request sent on registered channel (simulated).",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "fa579798-c042-48e0-ac78-f9a472e91e0a",
+      "name": "Send Step-up Verification",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1120,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3b10f5af-2041-4283-b6f9-f3b090e164db",
+              "name": "outcome",
+              "value": "Payment held (max 24h); verification call scheduled (simulated).",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "c6f67c96-1aa2-4cbf-9644-f2450edc7a19",
+      "name": "Hold Payment + Verification Call",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1120,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "da6e7a6f-0caf-4c01-931b-a40fe021d6a8",
+              "name": "outcome",
+              "value": "L2 actions executed (simulated); STR draft sent to Compliance; customer advised on 1930.",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "30ae971e-ef5e-4f9d-8bd6-e995f08882d7",
+      "name": "Protective Actions + STR Draft",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1120,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      },
+      "id": "e5356f88-b7e0-4ed5-af1f-54aee67d924e",
+      "name": "Return Outcome",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1360,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {
+          "responseCode": 403
+        }
+      },
+      "id": "329c1a36-a022-4bb7-8583-0a7e03df4ee1",
+      "name": "Return Rejection",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## [H] Human-in-the-Loop decision handler\nThe investigator's decision is validated (role-based access, mandatory reason for overrides, L2-only blocking actions) and written to the hash-chained audit log before any outcome action runs.",
+        "height": 180,
+        "width": 620,
+        "color": 6
+      },
+      "id": "ce844b53-7747-4cc5-a710-17731602ec4a",
+      "name": "Note 06a1f7",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -20,
+        -40
+      ]
+    }
+  ],
+  "connections": {
+    "Decision Webhook": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Validate Role & Record Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Role & Record Decision": {
+      "main": [
+        [
+          {
+            "node": "Decision accepted?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decision accepted?": {
+      "main": [
+        [
+          {
+            "node": "Outcome",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Rejection",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Outcome": {
+      "main": [
+        [
+          {
+            "node": "Release Transaction & Close Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Step-up Verification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Hold Payment + Verification Call",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Protective Actions + STR Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Release Transaction & Close Alert": {
+      "main": [
+        [
+          {
+            "node": "Return Outcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Step-up Verification": {
+      "main": [
+        [
+          {
+            "node": "Return Outcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hold Payment + Verification Call": {
+      "main": [
+        [
+          {
+            "node": "Return Outcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Protective Actions + STR Draft": {
+      "main": [
+        [
+          {
+            "node": "Return Outcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "tags": []
+}
