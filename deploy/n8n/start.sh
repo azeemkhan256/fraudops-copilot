@@ -6,7 +6,9 @@ cd /home/node/svc
 mkdir -p /tmp/nginx
 
 PORT="${PORT:-10000}"
-SELF_URL="${RENDER_EXTERNAL_URL:-http://localhost:$PORT}"
+SELF_URL="${RENDER_EXTERNAL_URL:-}"
+[ -z "$SELF_URL" ] && [ -n "${RAILWAY_PUBLIC_DOMAIN:-}" ] && SELF_URL="https://$RAILWAY_PUBLIC_DOMAIN"
+SELF_URL="${SELF_URL:-http://localhost:$PORT}"
 export WEBHOOK_URL="$SELF_URL/"
 export N8N_EDITOR_BASE_URL="$SELF_URL/"
 
