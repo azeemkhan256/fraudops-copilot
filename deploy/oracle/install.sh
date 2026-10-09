@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# FraudOps Copilot - full install on one always-on Ubuntu 24.04 server (Oracle Cloud Always Free).
+# FraudOps Copilot - full install on one always-on Ubuntu 24.04 server
+# (Oracle Cloud Always Free or Google Cloud free e2-micro).
 # Runs everything as on the local PC: API + web app, Streamlit, n8n with the 3 workflows, project website.
 # Public HTTPS links via Caddy and sslip.io:
 #   https://fraudops.<ip-with-dashes>.sslip.io   web app (/, /docs, /streamlit/, /docs-site/)
@@ -114,8 +115,15 @@ N8N_RUN=(docker run --rm --network host -v n8n_data:/home/node/.n8n -v "$APP/n8n
 for id in FraudInvOrch0001 HitlDecision0002 SlaMonitor000003; do
   "${N8N_RUN[@]}" publish:workflow --id="$id" || echo "WARNING: could not publish $id - publish it in the n8n editor"
 done
+# Small servers (e.g. Google Cloud e2-micro, 1 GB): load only the node types the workflows use
+N8N_SMALL=()
+if [ "$(awk '/MemTotal/ {print $2}' /proc/meminfo)" -lt 3000000 ]; then
+  N8N_SMALL=(-e NODE_OPTIONS=--max-old-space-size=320 -e N8N_RUNNERS_MAX_OLD_SPACE_SIZE=64
+    -e 'NODES_INCLUDE=["n8n-nodes-base.webhook","n8n-nodes-base.httpRequest","n8n-nodes-base.if","n8n-nodes-base.manualTrigger","n8n-nodes-base.respondToWebhook","n8n-nodes-base.scheduleTrigger","n8n-nodes-base.set","n8n-nodes-base.stickyNote","n8n-nodes-base.switch"]')
+  echo "Small server detected - n8n loads only the nodes the workflows need"
+fi
 docker run -d --name n8n --restart unless-stopped --network host \
-  -v n8n_data:/home/node/.n8n \
+  -v n8n_data:/home/node/.n8n "${N8N_SMALL[@]}" \
   -e N8N_LISTEN_ADDRESS=127.0.0.1 -e N8N_PORT=5678 -e N8N_PROXY_HOPS=1 \
   -e N8N_HOST="$N8N_HOST" -e N8N_PROTOCOL=https \
   -e WEBHOOK_URL="https://$N8N_HOST/" -e N8N_EDITOR_BASE_URL="https://$N8N_HOST/" \
