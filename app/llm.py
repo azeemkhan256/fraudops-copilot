@@ -28,7 +28,12 @@ def _api_key(provider: str) -> str | None:
     env = config.PROVIDERS[provider]["api_key_env"]
     if not env:
         return None
-    return os.getenv(env) or next((os.getenv(a) for a in config.PROVIDERS[provider].get("alt_env", []) if os.getenv(a)), None)
+    # Keys pasted into a hosting dashboard often carry a trailing newline/space, which breaks the HTTP header.
+    for name in [env, *config.PROVIDERS[provider].get("alt_env", [])]:
+        key = (os.getenv(name) or "").strip()
+        if key:
+            return key
+    return None
 
 
 def provider_ready(model_cfg: dict) -> tuple[bool, str]:
